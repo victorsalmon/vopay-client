@@ -7,6 +7,16 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./sandbox": {
+      "import": "./dist/sandbox.js",
+      "types": "./dist/sandbox.d.ts"
+    }
+  },
   "files": [
     "dist"
   ],
