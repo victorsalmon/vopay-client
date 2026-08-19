@@ -1,5 +1,7 @@
 import { createVoPayConfigFromEnv } from './config.js';
 import type { VoPayConfig } from './config.js';
+import { isProviderErrorStatus } from './util.js';
+export { isProviderErrorStatus };
 
 /**
  * Whether sandbox integration tests should run.
@@ -53,14 +55,4 @@ export function isAuthOrSignatureRejection(response: Response, bodyText: string)
   return /auth|allow|signature|ip|unauthorized| forbidden /i.test(bodyText);
 }
 
-/**
- * Detect a provider-declared error/failure/declined status in a parsed JSON
- * response. This is expected on a first sandbox call when the payload fails
- * business validation but the wiring is correct.
- */
-export function isProviderErrorStatus(raw: unknown): boolean {
-  if (!raw || typeof raw !== 'object') return false;
-  const record = raw as Record<string, unknown>;
-  const status = String(record.Status ?? record.status ?? '').toLowerCase();
-  return ['error', 'failed', 'failure', 'declined'].includes(status);
-}
+

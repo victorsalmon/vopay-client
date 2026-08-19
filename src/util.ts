@@ -16,3 +16,17 @@ export function firstString(record: Record<string, unknown>, keys: string[]): st
   }
   return null;
 }
+
+/**
+ * Detect a provider-declared error/failure/declined status in a parsed JSON
+ * response. This is expected on a first sandbox call when the payload fails
+ * business validation but the wiring is correct.
+ */
+export function isProviderErrorStatus(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object') return false;
+  const record = raw as Record<string, unknown>;
+  const status = String(
+    record.Status ?? record.status ?? record.Result ?? record.result ?? ''
+  ).toLowerCase();
+  return ['error', 'failed', 'failure', 'declined'].includes(status);
+}
