@@ -52,6 +52,119 @@ describe.skipIf(!isSandboxEnabled())('VoPay sandbox — existing Interac money r
   });
 });
 
+describe.skipIf(!isSandboxEnabled())('VoPay sandbox — remaining core endpoints', () => {
+  it('reaches the sandbox via eft/fund', async () => {
+    const config = requireSandboxCredentials();
+    const client = createVoPayClient(config);
+    const clientReferenceNumber = uniqueClientReference('fund');
+
+    try {
+      const result = await client.eftFund({
+        amountCents: 1000,
+        currency: 'CAD',
+        clientReferenceNumber,
+        idempotencyKey: uniqueClientReference('fund-idem'),
+        firstName: 'Sandbox',
+        lastName: 'Tenant',
+        address1: '123 Sandbox St',
+        city: 'Toronto',
+        province: 'ON',
+        country: 'CA',
+        postalCode: 'M5H 1A1',
+        accountNumber: '1234567',
+        financialInstitutionNumber: '001',
+        branchTransitNumber: '00002',
+      });
+      expect(result.providerTransactionId).toBeTruthy();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message, `auth/allowlist/signature failure: ${message}`).not.toMatch(
+        /401|403|allowlist|signature|auth/i
+      );
+    }
+  });
+
+  it('reaches the sandbox via eft/withdraw', async () => {
+    const config = requireSandboxCredentials();
+    const client = createVoPayClient(config);
+    const clientReferenceNumber = uniqueClientReference('withdraw');
+
+    try {
+      const result = await client.eftWithdraw({
+        amountCents: 1000,
+        currency: 'CAD',
+        clientReferenceNumber,
+        idempotencyKey: uniqueClientReference('withdraw-idem'),
+        firstName: 'Sandbox',
+        lastName: 'Tenant',
+        address1: '123 Sandbox St',
+        city: 'Toronto',
+        province: 'ON',
+        country: 'CA',
+        postalCode: 'M5H 1A1',
+        accountNumber: '1234567',
+        financialInstitutionNumber: '001',
+        branchTransitNumber: '00002',
+      });
+      expect(result.providerTransactionId).toBeTruthy();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message, `auth/allowlist/signature failure: ${message}`).not.toMatch(
+        /401|403|allowlist|signature|auth/i
+      );
+    }
+  });
+
+  it('reaches the sandbox via createClientAccount', async () => {
+    const config = requireSandboxCredentials();
+    const client = createVoPayClient(config);
+
+    try {
+      const result = await client.createClientAccount({
+        clientAccountId: uniqueClientReference('ca'),
+        firstName: 'Sandbox',
+        lastName: 'Account',
+        email: 'sandbox@vopay.test',
+        currency: 'CAD',
+        phoneNumber: '4165550100',
+        dateOfBirth: '1990-01-01',
+        sinLastDigits: 1234,
+        address1: '123 Sandbox St',
+        city: 'Toronto',
+        province: 'ON',
+        country: 'CA',
+        postalCode: 'M5H 1A1',
+      });
+      expect(result.clientAccountId).toBeTruthy();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message, `auth/allowlist/signature failure: ${message}`).not.toMatch(
+        /401|403|allowlist|signature|auth/i
+      );
+    }
+  });
+
+  it('reaches the sandbox via generateEmbedUrl', async () => {
+    const config = requireSandboxCredentials();
+    const client = createVoPayClient(config);
+
+    try {
+      const result = await client.generateEmbedUrl({
+        clientReferenceNumber: uniqueClientReference('embed'),
+        country: 'CA',
+        language: 'en',
+      });
+      expect(result.url).toBeTruthy();
+      expect(result.iframeKey).toBeTruthy();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message, `auth/allowlist/signature failure: ${message}`).not.toMatch(
+        /401|403|allowlist|signature|auth/i
+      );
+    }
+  });
+});
+
 describe('sandbox helpers (no env required)', () => {
   it('reports sandbox enabled only when VOPAY_SANDBOX_INTEGRATION is truthy', () => {
     expect(isSandboxEnabled({})).toBe(false);
