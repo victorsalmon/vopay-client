@@ -56,8 +56,13 @@ All transaction endpoints take an `IdempotencyKey`; a duplicate key is **rejecte
 
 ## Secrets & red lines
 - Store `VOPAY_API_KEY` + `VOPAY_SHARED_SECRET` in **AWS Secrets Manager**; inject at runtime.
-  **Never** hardcode, log, or commit them (the no-leak rule).
+  **Never** hardcode, log, commit, or print them.
+- When reading VoPay secrets from AWS SM, use the safe-read wrapper so the values are
+  injected as environment variables and never appear in tool output (see `your repository's agent guide`
+  "Safe Secrets Manager reads" and `a secrets-loader helper`).
 - Sandbox keys first; promote to production only after the integration + IP allowlist are verified.
+- Do **not** write SM values to a local `.env` file; if you create one for a one-off test,
+  delete it immediately after.
 - Webhook signature verification is **not yet captured** here — fetch + add it before wiring
   async status updates (do not trust unsigned webhook payloads for money state).
 
