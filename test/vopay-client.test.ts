@@ -81,6 +81,20 @@ describe('VoPay configuration', () => {
     expect(cfg).not.toBeNull();
     expect(cfg!.baseUrl).toBe('https://earthnode-dev.vopay.com');
   });
+
+  it('trims whitespace from the API key, account id, and shared secret', () => {
+    const cfg = createVoPayConfigFromEnv({
+      VOPAY_API_KEY: '  api-key-1  ',
+      VOPAY_BASE_URL: 'https://api.vopay.test',
+      VOPAY_ACCOUNT_ID: '  account-1  ',
+      VOPAY_SHARED_SECRET: '  shared-1  ',
+    });
+    expect(cfg).toMatchObject({
+      apiKey: 'api-key-1',
+      accountId: 'account-1',
+      sharedSecret: 'shared-1',
+    });
+  });
 });
 
 describe('getVoPayWebhookValue / firstString', () => {
