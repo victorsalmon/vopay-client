@@ -163,7 +163,7 @@ All transaction endpoints support idempotency for safe retries.
   wiring async status updates).
 
 ## 7. Endpoint reference
-The following core flows are implemented in `packages/vopay-client/src/client.ts`:
+The following core flows are implemented in `../../packages/vopay-client/src/client.ts`:
 - `eft/fund`, `eft/withdraw` — Canadian EFT collect / send
 - `account/client-accounts/individual` — segregated virtual ledger
 - `iq11/generate-embed-url` — iFrame bank-connect → Token
