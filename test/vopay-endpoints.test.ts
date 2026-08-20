@@ -1341,4 +1341,122 @@ describe('VoPay edge cases for mutation coverage', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it('accepts Flinks banking connector tokens instead of bank details or name', async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const form = new URLSearchParams(String(init?.body));
+      expect(form.get('FlinksAccountID')).toBe('flinks-acc');
+      expect(form.get('FlinksLoginID')).toBe('flinks-login');
+      expect(form.get('AccountNumber')).toBeNull();
+      return new Response(JSON.stringify({ TransactionID: 'tx-flinks' }), { status: 200 });
+    });
+    const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
+    const result = await client.eftFund({
+      amountCents: 1000,
+      currency: 'CAD',
+      clientReferenceNumber: 'ref-flinks',
+      idempotencyKey: 'idem-flinks',
+      flinksAccountId: 'flinks-acc',
+      flinksLoginId: 'flinks-login',
+    });
+    expect(result.providerTransactionId).toBe('tx-flinks');
+  });
+
+  it('requires both FlinksAccountID and FlinksLoginID', async () => {
+    const client = createVoPayClient(baseConfig(), vi.fn());
+    await expect(
+      client.eftFund({
+        amountCents: 1000,
+        currency: 'CAD',
+        clientReferenceNumber: 'ref',
+        idempotencyKey: 'idem',
+        flinksAccountId: 'flinks-acc',
+      })
+    ).rejects.toThrow(/payment method/);
+  });
+
+  it('accepts Plaid and Inverite connector tokens', async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const form = new URLSearchParams(String(init?.body));
+      expect(form.get('PlaidProcessorToken')).toBe('plaid-proc');
+      expect(form.get('InveriteRequestGUID')).toBe('inverite-1');
+      expect(form.get('AccountNumber')).toBeNull();
+      return new Response(JSON.stringify({ TransactionID: 'tx-connectors' }), { status: 200 });
+    });
+    const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
+    const result = await client.eftFund({
+      amountCents: 1000,
+      currency: 'CAD',
+      clientReferenceNumber: 'ref-connectors',
+      idempotencyKey: 'idem-connectors',
+      plaidProcessorToken: 'plaid-proc',
+      inveriteRequestGuid: 'inverite-1',
+    });
+    expect(result.providerTransactionId).toBe('tx-connectors');
+  });
+
+  it('accepts an MX connector token for eft/withdraw without a name', async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const form = new URLSearchParams(String(init?.body));
+      expect(form.get('MxAuthorizationCode')).toBe('mx-code');
+      expect(form.get('AccountNumber')).toBeNull();
+      return new Response(JSON.stringify({ TransactionID: 'tx-mx' }), { status: 200 });
+    });
+    const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
+    const result = await client.eftWithdraw({
+      amountCents: 1000,
+      currency: 'CAD',
+      clientReferenceNumber: 'ref-mx',
+      idempotencyKey: 'idem-mx',
+      mxAuthorizationCode: 'mx-code',
+    });
+    expect(result.providerTransactionId).toBe('tx-mx');
+  });
+
+  it('accepts the full Plaid public token set', async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const form = new URLSearchParams(String(init?.body));
+      expect(form.get('PlaidPublicToken')).toBe('public');
+      expect(form.get('PlaidAccessToken')).toBe('access');
+      expect(form.get('PlaidAccountID')).toBe('account');
+      expect(form.get('AccountNumber')).toBeNull();
+      return new Response(JSON.stringify({ TransactionID: 'tx-plaid' }), { status: 200 });
+    });
+    const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
+    const result = await client.eftFund({
+      amountCents: 1000,
+      currency: 'CAD',
+      clientReferenceNumber: 'ref-plaid',
+      idempotencyKey: 'idem-plaid',
+      plaidPublicToken: 'public',
+      plaidAccessToken: 'access',
+      plaidAccountId: 'account',
+    });
+    expect(result.providerTransactionId).toBe('tx-plaid');
+  });
+
+  it('rejects an incomplete Plaid public token set', async () => {
+    const client = createVoPayClient(baseConfig(), vi.fn());
+    await expect(
+      client.eftFund({
+        amountCents: 1000,
+        currency: 'CAD',
+        clientReferenceNumber: 'ref',
+        idempotencyKey: 'idem',
+        plaidPublicToken: 'public',
+        plaidAccessToken: 'access',
+      })
+    ).rejects.toThrow(/payment method/);
+
+    await expect(
+      client.eftFund({
+        amountCents: 1000,
+        currency: 'CAD',
+        clientReferenceNumber: 'ref',
+        idempotencyKey: 'idem',
+        plaidAccessToken: 'access',
+        plaidAccountId: 'account',
+      })
+    ).rejects.toThrow(/payment method/);
+  });
 });

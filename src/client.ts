@@ -183,20 +183,51 @@ function assertNonEmptyString(value: unknown, name: string): void {
   }
 }
 
+function hasConnectorToken(
+  input: {
+    token?: string;
+    flinksAccountId?: string;
+    flinksLoginId?: string;
+    plaidPublicToken?: string;
+    plaidAccessToken?: string;
+    plaidAccountId?: string;
+    plaidProcessorToken?: string;
+    mxAuthorizationCode?: string;
+    inveriteRequestGuid?: string;
+  }
+): boolean {
+  return (
+    isPresent(input.token) ||
+    (isPresent(input.flinksAccountId) && isPresent(input.flinksLoginId)) ||
+    (isPresent(input.plaidPublicToken) &&
+      isPresent(input.plaidAccessToken) &&
+      isPresent(input.plaidAccountId)) ||
+    isPresent(input.plaidProcessorToken) ||
+    isPresent(input.mxAuthorizationCode) ||
+    isPresent(input.inveriteRequestGuid)
+  );
+}
+
 function hasPaymentMethod(
   input: {
     clientAccountId?: string;
     contactId?: string;
     token?: string;
     accountNumber?: string;
-    financialInstitutionNumber?: string;
-    branchTransitNumber?: string;
+    flinksAccountId?: string;
+    flinksLoginId?: string;
+    plaidPublicToken?: string;
+    plaidAccessToken?: string;
+    plaidAccountId?: string;
+    plaidProcessorToken?: string;
+    mxAuthorizationCode?: string;
+    inveriteRequestGuid?: string;
   }
 ): boolean {
   return (
     isPresent(input.clientAccountId) ||
     isPresent(input.contactId) ||
-    isPresent(input.token) ||
+    hasConnectorToken(input) ||
     isPresent(input.accountNumber)
   );
 }
@@ -367,7 +398,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
     const hasClientOrToken =
       isPresent(input.clientAccountId) ||
       isPresent(input.contactId) ||
-      isPresent(input.token);
+      hasConnectorToken(input);
     const hasName =
       (isPresent(input.firstName) && isPresent(input.lastName)) ||
       isPresent(input.companyName);
@@ -447,7 +478,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
     const hasClientOrToken =
       isPresent(input.clientAccountId) ||
       isPresent(input.contactId) ||
-      isPresent(input.token);
+      hasConnectorToken(input);
     const hasName =
       (isPresent(input.firstName) && isPresent(input.lastName)) ||
       isPresent(input.companyName);
