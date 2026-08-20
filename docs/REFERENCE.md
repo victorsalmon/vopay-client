@@ -91,7 +91,7 @@ All transaction endpoints support idempotency for safe retries.
 - Pass an **`IdempotencyKey`** in the POST body.
 - VoPay stores the key on the transaction record; a second request with the same key is
   **rejected with an error** (asking the caller to retry with a different key).
-- Use case: a network error mid-`eft/fund` — retry with the same key to guarantee no double-charge.
+- Use case: a network error mid-`eft/fund` — the caller must retry with a *new* key; the original request must be reconciled separately because VoPay rejects duplicate keys.
 
 > Note the model: it's **reject-on-duplicate**, not "return the original result." The caller
 > must generate a new key to retry, and reconcile the original separately if it actually succeeded.
@@ -162,10 +162,12 @@ All transaction endpoints support idempotency for safe retries.
 - **Webhooks:** confirm VoPay's webhook model + signing (not yet captured here — fetch when
   wiring async status updates).
 
-## 7. Endpoint reference (to expand)
-Core flows to document as the build proceeds (fetch each from docs.vopay.com when implementing):
+## 7. Endpoint reference
+The following core flows are implemented in `packages/vopay-client/src/client.ts`:
 - `eft/fund`, `eft/withdraw` — Canadian EFT collect / send
 - `account/client-accounts/individual` — segregated virtual ledger
 - `iq11/generate-embed-url` — iFrame bank-connect → Token
-- card / Interac / pre-authorized debit variants as needed
+
+Remaining flows to add as needed:
+- card / Interac / pre-authorized debit variants
 - webhook events + signature verification
