@@ -1,5 +1,8 @@
 {
-  "name": "vopay-client",
+  "name": "@clocklobster/vopay-client",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "1.0.0",
   "description": "Product-neutral VoPay payment client (Interac money requests, EFT, webhooks, signature verification)",
   "license": "MIT",

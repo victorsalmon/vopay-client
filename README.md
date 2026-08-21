@@ -95,9 +95,9 @@ provider identifiers without touching product state. Product-specific orchestrat
 ## Install
 
 ```bash
-npm install vopay-client
+npm install @clocklobster/vopay-client
 # or
-pnpm add vopay-client
+pnpm add @clocklobster/vopay-client
 # or
 yarn add vopay-client
 ```
@@ -114,7 +114,7 @@ yarn add vopay-client
 ## Quick start
 
 ```typescript
-import { createVoPayClient, createVoPayConfigFromEnv } from 'vopay-client';
+import { createVoPayClient, createVoPayConfigFromEnv } from '@clocklobster/vopay-client';
 
 // 1. Build config from environment variables (returns null if VOPAY_API_KEY is unset)
 const config = createVoPayConfigFromEnv();
@@ -215,7 +215,7 @@ console.log(embed.iframeKey);
 You can also build the config object directly without environment variables:
 
 ```typescript
-import { createVoPayClient, VO_PAY_DEFAULT_BASE_URL } from 'vopay-client';
+import { createVoPayClient, VO_PAY_DEFAULT_BASE_URL } from '@clocklobster/vopay-client';
 
 const vopay = createVoPayClient({
   baseUrl: VO_PAY_DEFAULT_BASE_URL, // or 'https://earthnode.vopay.com' for production
@@ -261,7 +261,7 @@ Creates a VoPay client. The optional `fetchImpl` parameter lets you inject a cus
 `fetch` (useful for testing or for runtimes without a global `fetch`).
 
 ```typescript
-import { createVoPayClient, type VoPayConfig } from 'vopay-client';
+import { createVoPayClient, type VoPayConfig } from '@clocklobster/vopay-client';
 
 const config: VoPayConfig = {
   baseUrl: 'https://earthnode-dev.vopay.com',
@@ -300,7 +300,7 @@ Builds a `VoPayConfig` from environment variables. Returns `null` when
 value is present but incomplete, so a misconfiguration is fail-fast.
 
 ```typescript
-import { createVoPayConfigFromEnv } from 'vopay-client';
+import { createVoPayConfigFromEnv } from '@clocklobster/vopay-client';
 
 const config = createVoPayConfigFromEnv();      // reads process.env
 const config2 = createVoPayConfigFromEnv(myEnv); // reads a custom env object
@@ -479,7 +479,7 @@ Verify a VoPay webhook signature using timing-safe comparison. VoPay signs webho
 payloads with `ValidationKey = SHA1(shared secret + provider record id)`.
 
 ```typescript
-import { verifyVoPayWebhook, getVoPayWebhookValue } from 'vopay-client';
+import { verifyVoPayWebhook, getVoPayWebhookValue } from '@clocklobster/vopay-client';
 
 // recordId: the provider's record/transaction id from the webhook payload
 // validationKey: the ValidationKey field from the webhook payload
@@ -588,7 +588,7 @@ Always verify the signature before trusting a webhook for money state — unsign
 unverified payloads must not update transaction status.
 
 ```typescript
-import { verifyVoPayWebhook, getVoPayWebhookValue } from 'vopay-client';
+import { verifyVoPayWebhook, getVoPayWebhookValue } from '@clocklobster/vopay-client';
 
 export async function handleVoPayWebhook(event: {
   body: string;
