@@ -2,8 +2,25 @@
   "name": "vopay-client",
   "version": "1.0.0",
   "description": "Product-neutral VoPay payment client (Interac money requests, EFT, webhooks, signature verification)",
-  "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "Victor Salmon",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/victorsalmon/vopay-client.git"
+  },
+  "homepage": "https://github.com/victorsalmon/vopay-client#readme",
+  "bugs": {
+    "url": "https://github.com/victorsalmon/vopay-client/issues"
+  },
+  "keywords": [
+    "vopay",
+    "payments",
+    "eft",
+    "interac",
+    "canada",
+    "payment-api",
+    "client"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

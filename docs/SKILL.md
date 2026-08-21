@@ -6,8 +6,7 @@ description: >
   idempotency, input-validation rules, and the core endpoints (eft/fund, eft/withdraw,
   client accounts, iq11 embed-url iFrame). Includes the saved getting-started + api-overview
   guide and the gotchas that block a first call (IP allowlisting, signature timezone). Use when
-  integrating VoPay into your platform or your platform (the chosen processor replacing
-  Stripe, per the 2026-08-13 decision), debugging a VoPay auth/signature failure, or wiring
+  integrating VoPay into a software platform, debugging a VoPay auth/signature failure, or wiring
   EFT fund/withdraw flows.
 triggers:
   - user
@@ -17,17 +16,15 @@ triggers:
 # VoPay — payment-integration skill
 
 ## Purpose
-Reference for integrating VoPay (the payment processor adopted on **your platform**
-and **your platform**, replacing Stripe — operator decision 2026-08-13). Full API detail,
-the saved getting-started + api-overview guide, and the integration gotchas live in
-`REFERENCE.md` (this folder). **Code wins over this doc** — re-fetch the live docs when
-endpoint specifics matter.
+Reference for integrating VoPay (a Canadian payment processor offering EFT, bank-to-bank,
+and card payments). Full API detail, the saved getting-started + api-overview guide, and
+the integration gotchas live in `REFERENCE.md` (this folder). **Code wins over this doc** —
+re-fetch the live docs when endpoint specifics matter.
 
 ## When to use
 - Building VoPay EFT fund/withdraw, client-account, or iFrame bank-connect flows.
 - Debugging a `401` / signature failure (almost always the date timezone or a stale secret).
-- Onboarding VoPay behind the provider-agnostic subscription gate in your platform.
-- Replacing a Stripe billing surface with VoPay.
+- Replacing a Stripe (or other) billing surface with VoPay.
 
 ## The auth model (the part that bites)
 Every request is **HTTP POST form-encoded → JSON**, and carries `APIkey` + `Signature` where:
@@ -55,18 +52,14 @@ All transaction endpoints take an `IdempotencyKey`; a duplicate key is **rejecte
 "return original"). Retry with a *new* key and reconcile the original separately.
 
 ## Secrets & red lines
-- Store `VOPAY_API_KEY` + `VOPAY_SHARED_SECRET` in **AWS Secrets Manager**; inject at runtime.
-  **Never** hardcode, log, commit, or print them.
-- When reading VoPay secrets from AWS SM, use the safe-read wrapper so the values are
-  injected as environment variables and never appear in tool output (see `your repository's agent guide`
-  "Safe Secrets Manager reads" and `a secrets-loader helper`).
+- Store `VOPAY_API_KEY` + `VOPAY_SHARED_SECRET` in a secrets manager (e.g. AWS Secrets Manager,
+  Vault, Doppler); inject at runtime. **Never** hardcode, log, commit, or print them.
 - Sandbox keys first; promote to production only after the integration + IP allowlist are verified.
-- Do **not** write SM values to a local `.env` file; if you create one for a one-off test,
+- Do **not** write secret values to a local `.env` file; if you create one for a one-off test,
   delete it immediately after.
-- Webhook signature verification is **not yet captured** here — fetch + add it before wiring
-  async status updates (do not trust unsigned webhook payloads for money state).
+- Webhook signature verification is included in this client (`verifyVoPayWebhook`) — always
+  validate the `ValidationKey` before trusting a webhook payload for money state.
 
 ## Pointers
 - Detailed guide + validation tables: `REFERENCE.md` (this folder).
-- Why VoPay (the Stripe-replacement decision): `(internal handoff doc - removed)`.
 - Live docs: `https://docs.vopay.com/docs/getting-started` + `/docs/api-overview`.

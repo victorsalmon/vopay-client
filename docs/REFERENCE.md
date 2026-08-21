@@ -6,9 +6,7 @@
 > endpoint specifics. Re-fetch: `WebFetch`/`webReader` the URLs above.
 
 VoPay is a Canadian payment-infrastructure API (EFT / bank-to-bank, card, etc.) used by
-software platforms to move money without building the rails themselves. Adopted on
-**your platform** and **your platform** (operator decision 2026-08-13) as the
-payment processor replacing Stripe.
+software platforms to move money without building the rails themselves.
 
 ---
 
@@ -144,26 +142,21 @@ All transaction endpoints support idempotency for safe retries.
 
 ---
 
-## 6. Integration notes for our products
+## 6. Integration notes
 
-- **Secrets storage:** store `VOPAY_API_KEY` + `VOPAY_SHARED_SECRET` in **AWS Secrets Manager**
-  (per the no-leak rule). Never hardcode; never print. Inject at runtime like the other
-  payment-provider secrets. For local sandbox calls, use the safe-read wrapper
-  `a secrets-loader helper` to load the values into the test
-  process environment without printing them; do not write them to a `.env` file.
-- **IP allowlisting:** VoPay rejects non-whitelisted IPs. For AWS-deployed callers, allowlist
-  the Lambda/EC2 egress IPs (or NAT Gateway EIP) in the VoPay portal. **This is an operations
+- **Secrets storage:** store `VOPAY_API_KEY` + `VOPAY_SHARED_SECRET` in a secrets manager
+  (e.g. AWS Secrets Manager, Vault, Doppler). Never hardcode; never print. Inject at runtime.
+  Do not write secret values to a `.env` file.
+- **IP allowlisting:** VoPay rejects non-whitelisted IPs. Register the caller's egress IP
+  (Lambda/NAT EIP, EC2, or your office IP) in the VoPay portal. **This is an operations
   step that blocks first call** — surface it early.
 - **Date/timezone for the signature:** pin to UTC and verify on first integration.
-- **Replacing Stripe:** the the subscription gate is provider-agnostic at
-  runtime (`subscription-gate.ts` reads only the local `subscriptions` table) — so VoPay can
-  slot in behind the gate without rewiring the 20 route groups. See
-  `(internal handoff doc - removed)`.
-- **Webhooks:** confirm VoPay's webhook model + signing (not yet captured here — fetch when
-  wiring async status updates).
+- **Webhooks:** VoPay signs webhook payloads with a `ValidationKey` = SHA1(shared secret +
+  record id). This client provides `verifyVoPayWebhook()` for timing-safe verification —
+  always validate before trusting a webhook for money state.
 
 ## 7. Endpoint reference
-The following core flows are implemented in `../../packages/vopay-client/src/client.ts`:
+The following core flows are implemented in `src/client.ts`:
 - `eft/fund`, `eft/withdraw` — Canadian EFT collect / send
 - `account/client-accounts/individual` — segregated virtual ledger
 - `iq11/generate-embed-url` — iFrame bank-connect → Token
