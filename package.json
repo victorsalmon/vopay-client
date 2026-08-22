@@ -45,12 +45,14 @@
     "postinstall": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:property": "vitest run property",
     "test:mutation": "stryker run"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^10.0.0",
     "@stryker-mutator/vitest-runner": "^10.0.0",
     "@types/node": "^22.10.2",
+    "fast-check": "^4.9.0",
     "typescript": "^5.7.2",
     "vitest": "^3.2.7"
   }
