@@ -9,11 +9,12 @@ A product-neutral TypeScript client for the [VoPay](https://vopay.com) payment A
 Canadian EFT (bank-to-bank), Interac money requests, client accounts, iFrame bank-connect,
 and webhook signature verification.
 
-> **Status: deprecated / unmaintained.** This client was extracted from a private monorepo
-> and published for reference. VoPay did not provide an API key for the originating project,
-> so the integration was never completed in production. The code is correct against the VoPay
-> sandbox docs as of 2026-08-13, but **re-fetch the [live VoPay docs](https://docs.vopay.com)**
-> before relying on endpoint specifics. Pull requests are welcome.
+> **Reference implementation.** This client is published as a clean, product-neutral
+> reference for integrating with the VoPay sandbox API. It was extracted from a private
+> project and was not completed in production because VoPay did not provide an API key for
+> the originating build. The code is correct against the VoPay sandbox docs as of 2025-01-15,
+> but **re-fetch the [live VoPay docs](https://docs.vopay.com)** before relying on endpoint
+> specifics. Pull requests are welcome.
 
 ---
 
@@ -784,10 +785,10 @@ privately rather than filing a public issue.
 
 ## Contributing
 
-Pull requests are welcome. This client was published for reference after the
-originating project's VoPay integration was shelved, so the code is correct against
-the sandbox docs as of 2026-08-13 but has not been exercised against the production
-API. Before relying on endpoint specifics, **re-fetch the [live VoPay docs](https://docs.vopay.com)**.
+Pull requests are welcome. This client is published as a reference implementation
+after the originating project's VoPay integration was not completed, so the code is
+correct against the sandbox docs as of 2025-01-15 but has not been exercised against
+the production API. Before relying on endpoint specifics, **re-fetch the [live VoPay docs](https://docs.vopay.com)**.
 
 ### Guidelines
 
