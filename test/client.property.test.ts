@@ -235,7 +235,7 @@ describe('VoPay generic post — property tests', () => {
         const fetchMock = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
         const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
         const msg =
-          typeof body.ErrorMessage === 'string' && body.ErrorMessage.trim()
+          'ErrorMessage' in body && body.ErrorMessage.trim()
             ? body.ErrorMessage.trim()
             : 'unknown';
         await expect(client.post('custom/endpoint', {})).rejects.toThrow(
