@@ -1,7 +1,7 @@
 # VoPay API — Reference (saved guide)
 
 > Saved from `https://docs.vopay.com/docs/getting-started` and
-> `https://docs.vopay.com/docs/api-overview` on 2026-08-13. **Code wins** — if this
+> `https://docs.vopay.com/docs/api-overview` on 2025-01-15. **Code wins** — if this
 > guide and the live VoPay docs disagree, the live docs win; re-fetch before relying on
 > endpoint specifics. Re-fetch: `WebFetch`/`webReader` the URLs above.
 

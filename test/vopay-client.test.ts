@@ -426,9 +426,9 @@ describe('VoPay money requests', () => {
   });
 
   it('freezes the signature to a mocked UTC date', async () => {
-    const expectedDate = '2026-08-17';
+    const expectedDate = '2025-01-15';
     vi.useFakeTimers({ shouldAdvanceTime: false });
-    vi.setSystemTime(new Date('2026-08-17T00:00:00.000Z'));
+    vi.setSystemTime(new Date('2025-01-15T00:00:00.000Z'));
 
     const expectedSignature = voPaySha1('api-key-1shared-1' + expectedDate);
 

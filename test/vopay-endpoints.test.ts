@@ -756,8 +756,8 @@ describe('VoPay generateEmbedUrl', () => {
 describe('VoPay signature', () => {
   it('uses the date-bound SHA1 signature for every endpoint', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: false });
-    vi.setSystemTime(new Date('2026-08-17T00:00:00.000Z'));
-    const expected = voPaySha1('api-key-1shared-1' + '2026-08-17');
+    vi.setSystemTime(new Date('2025-01-15T00:00:00.000Z'));
+    const expected = voPaySha1('api-key-1shared-1' + '2025-01-15');
 
     let capturedInit: RequestInit | undefined;
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
