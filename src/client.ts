@@ -163,26 +163,55 @@ export interface VoPayGenerateEmbedUrlResult {
   raw: Record<string, unknown>;
 }
 
+/** Number of cents in one dollar; VoPay amounts are submitted in dollars. */
+const CENTS_PER_DOLLAR = 100;
+
+/** VoPay transaction endpoints default to Canadian dollars. */
+const DEFAULT_CURRENCY = 'CAD';
+
+/**
+ * Validate that `value` is a positive integer.
+ *
+ * All monetary inputs are expected in cents, so fractional or non-positive
+ * values are rejected before they reach the provider.
+ */
 function assertPositiveInteger(value: number, name: string): void {
   if (!Number.isInteger(value) || value <= 0) {
     throw new Error(`VoPay ${name} requires a positive integer amountCents`);
   }
 }
 
+/** Convert an integer cent amount to a two-decimal dollar string for VoPay. */
+function formatDollarAmount(amountCents: number): string {
+  return (amountCents / CENTS_PER_DOLLAR).toFixed(2);
+}
+
+/** Return the trimmed value or an empty string, treating `undefined` as empty. */
 function trimmed(value: string | undefined): string {
   return value?.trim() ?? '';
 }
 
+/** Whether a string value is present (non-empty after trimming). */
 function isPresent(value: string | undefined): boolean {
   return trimmed(value).length > 0;
 }
 
+/**
+ * Throw if a required string is missing or whitespace-only.
+ *
+ * The `name` is included in the error so callers know which field failed,
+ * especially when many required values are validated together.
+ */
 function assertNonEmptyString(value: unknown, name: string): void {
   if (typeof value !== 'string' || value.trim() === '') {
     throw new Error(`VoPay ${name} is required`);
   }
 }
 
+/**
+ * Whether the input carries a third-party connector token that can stand in
+ * for raw bank account details.
+ */
 function hasConnectorToken(
   input: {
     token?: string;
@@ -208,6 +237,11 @@ function hasConnectorToken(
   );
 }
 
+/**
+ * Whether the input contains any acceptable payment method for an EFT
+ * transaction: a stored client account, a contact, a raw bank account, or
+ * one of the supported connector tokens.
+ */
 function hasPaymentMethod(
   input: {
     clientAccountId?: string;
@@ -232,6 +266,12 @@ function hasPaymentMethod(
   );
 }
 
+/**
+ * Validate the fields common to every EFT transaction.
+ *
+ * Each transaction must have a positive integer amount in cents, a non-empty
+ * currency, client reference, and idempotency key.
+ */
 function validateTransactionInput(
   input: {
     amountCents: number;
@@ -306,14 +346,12 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
   }
 
   async function requestMoney(input: VoPayMoneyRequestInput): Promise<VoPayMoneyRequestResult> {
-    if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
-      throw new Error('VoPay money requests require a positive integer amountCents');
-    }
-    const { raw } = await post(
+    assertPositiveInteger(input.amountCents, 'money request');
+    const { raw: responseBody } = await post(
       'interac/money-request',
       {
-        Amount: (input.amountCents / 100).toFixed(2),
-        Currency: 'CAD',
+        Amount: formatDollarAmount(input.amountCents),
+        Currency: DEFAULT_CURRENCY,
         EmailAddress: input.recipientEmail,
         RecipientName: input.recipientName,
         MessageForRecipient: input.message,
@@ -323,7 +361,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
       input.idempotencyKey
     );
     return {
-      providerTransactionId: firstString(raw, [
+      providerTransactionId: firstString(responseBody, [
         'TransactionID',
         'TransactionId',
         'RequestID',
@@ -331,13 +369,13 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
         'ID',
         'id',
       ]),
-      raw,
+      raw: responseBody,
     };
   }
 
   function buildFundFields(input: VoPayFundInput): Record<string, string | undefined> {
     const fields: Record<string, string | undefined> = {
-      Amount: (input.amountCents / 100).toFixed(2),
+      Amount: formatDollarAmount(input.amountCents),
       Currency: input.currency,
       ClientReferenceNumber: input.clientReferenceNumber,
       ClientAccountID: input.clientAccountId,
@@ -421,7 +459,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
 
   function buildWithdrawFields(input: VoPayWithdrawInput): Record<string, string | undefined> {
     return {
-      Amount: (input.amountCents / 100).toFixed(2),
+      Amount: formatDollarAmount(input.amountCents),
       Currency: input.currency,
       ClientReferenceNumber: input.clientReferenceNumber,
       ClientAccountID: input.clientAccountId,
