@@ -373,8 +373,16 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
     };
   }
 
-  function buildFundFields(input: VoPayFundInput): Record<string, string | undefined> {
-    const fields: Record<string, string | undefined> = {
+  /**
+   * Build the form body fields shared by eft/fund and eft/withdraw.
+   *
+   * This keeps the long, identical field mappings in one place so the
+   * fund- and withdraw-specific builders only add their unique keys.
+   */
+  function buildEftBaseFields(
+    input: VoPayFundInput | VoPayWithdrawInput
+  ): Record<string, string | undefined> {
+    return {
       Amount: formatDollarAmount(input.amountCents),
       Currency: input.currency,
       ClientReferenceNumber: input.clientReferenceNumber,
@@ -405,6 +413,12 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
       Notes: input.notes,
       IdempotencyKey: input.idempotencyKey,
       GLCode: input.glCode,
+    };
+  }
+
+  function buildFundFields(input: VoPayFundInput): Record<string, string | undefined> {
+    const fields: Record<string, string | undefined> = {
+      ...buildEftBaseFields(input),
       WalletID: input.walletId,
     };
     if (input.iq11VerificationLevelId !== undefined) {
@@ -459,37 +473,8 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
 
   function buildWithdrawFields(input: VoPayWithdrawInput): Record<string, string | undefined> {
     return {
-      Amount: formatDollarAmount(input.amountCents),
-      Currency: input.currency,
-      ClientReferenceNumber: input.clientReferenceNumber,
-      ClientAccountID: input.clientAccountId,
-      ContactID: input.contactId,
-      FirstName: input.firstName,
-      LastName: input.lastName,
-      CompanyName: input.companyName,
-      Address1: input.address1,
-      City: input.city,
-      Province: input.province,
-      Country: input.country,
-      PostalCode: input.postalCode,
-      AccountNumber: input.accountNumber,
-      FinancialInstitutionNumber: input.financialInstitutionNumber,
-      BranchTransitNumber: input.branchTransitNumber,
-      Token: input.token,
-      FlinksAccountID: input.flinksAccountId,
-      FlinksLoginID: input.flinksLoginId,
-      PlaidPublicToken: input.plaidPublicToken,
-      PlaidAccessToken: input.plaidAccessToken,
-      PlaidAccountID: input.plaidAccountId,
-      PlaidProcessorToken: input.plaidProcessorToken,
-      MxAuthorizationCode: input.mxAuthorizationCode,
-      InveriteRequestGUID: input.inveriteRequestGuid,
+      ...buildEftBaseFields(input),
       ParentTransactionID: input.parentTransactionId,
-      TransactionTypeCode: input.transactionTypeCode,
-      TransactionLabel: input.transactionLabel,
-      Notes: input.notes,
-      IdempotencyKey: input.idempotencyKey,
-      GLCode: input.glCode,
     };
   }
 
