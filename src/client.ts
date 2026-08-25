@@ -460,21 +460,33 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
       );
     }
 
-    const { raw } = await post('eft/fund', buildFundFields(input));
-    const flaggedReason =
-      typeof raw.Flagged === 'string' ? raw.Flagged.trim() || null : null;
-    return {
-      providerTransactionId: firstString(raw, ['TransactionID']),
-      flagged: flaggedReason !== null,
-      flaggedReason,
-      raw,
-    };
+    const { raw: responseBody } = await post('eft/fund', buildFundFields(input));
+    return buildEftResult(responseBody);
   }
 
   function buildWithdrawFields(input: VoPayWithdrawInput): Record<string, string | undefined> {
     return {
       ...buildEftBaseFields(input),
       ParentTransactionID: input.parentTransactionId,
+    };
+  }
+
+  /**
+   * Convert a parsed eft/fund or eft/withdraw response into the standard
+   * VoPay transaction result. Both endpoints share the same `TransactionID`
+   * and `Flagged` semantics, so a single builder avoids the duplicate
+   * response unwrapping that appeared in each method.
+   */
+  function buildEftResult(responseBody: Record<string, unknown>): VoPayFundResult {
+    const flaggedReason =
+      typeof responseBody.Flagged === 'string'
+        ? responseBody.Flagged.trim() || null
+        : null;
+    return {
+      providerTransactionId: firstString(responseBody, ['TransactionID']),
+      flagged: flaggedReason !== null,
+      flaggedReason,
+      raw: responseBody,
     };
   }
 
@@ -511,15 +523,8 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
       );
     }
 
-    const { raw } = await post('eft/withdraw', buildWithdrawFields(input));
-    const flaggedReason =
-      typeof raw.Flagged === 'string' ? raw.Flagged.trim() || null : null;
-    return {
-      providerTransactionId: firstString(raw, ['TransactionID']),
-      flagged: flaggedReason !== null,
-      flaggedReason,
-      raw,
-    };
+    const { raw: responseBody } = await post('eft/withdraw', buildWithdrawFields(input));
+    return buildEftResult(responseBody);
   }
 
   async function createClientAccount(
