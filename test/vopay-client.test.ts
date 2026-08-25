@@ -214,6 +214,28 @@ describe('VoPay money requests', () => {
     ).rejects.toThrow(/positive integer/);
   });
 
+  it('names money requests in amount validation errors', async () => {
+    const client = createVoPayClient(
+      {
+        baseUrl: 'https://api.vopay.test',
+        accountId: 'account-1',
+        apiKey: 'api-key-1',
+        sharedSecret: 'shared-1',
+      },
+      vi.fn()
+    );
+    await expect(
+      client.requestMoney({
+        amountCents: 0,
+        recipientEmail: 'tenant@example.com',
+        recipientName: 'Tenant Example',
+        message: 'Rent due',
+        clientReferenceNumber: 'UH-charge-1',
+        idempotencyKey: 'rent-charge-1',
+      })
+    ).rejects.toThrow(/VoPay money request requires a positive integer amountCents/);
+  });
+
   it('throws with the HTTP status on a non-200 response', async () => {
     const client = createVoPayClient(
       {
