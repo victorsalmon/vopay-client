@@ -288,6 +288,50 @@ function validateTransactionInput(
 }
 
 /**
+ * Validate the additional rules for eft/fund and eft/withdraw.
+ *
+ * Bank account fields must be complete if any are provided, a payment method
+ * must be present, and a payee name is required when paying by raw bank
+ * account without a stored client account or connector token.
+ */
+function validateEftInput(
+  input: VoPayFundInput | VoPayWithdrawInput,
+  name: 'eft/fund' | 'eft/withdraw'
+): void {
+  validateTransactionInput(input, name);
+  const anyBankField =
+    isPresent(input.accountNumber) ||
+    isPresent(input.financialInstitutionNumber) ||
+    isPresent(input.branchTransitNumber);
+  const allBankFields =
+    isPresent(input.accountNumber) &&
+    isPresent(input.financialInstitutionNumber) &&
+    isPresent(input.branchTransitNumber);
+  if (anyBankField && !allBankFields) {
+    throw new Error(
+      `VoPay ${name} requires all bank account fields (accountNumber, financialInstitutionNumber, branchTransitNumber) when any are provided`
+    );
+  }
+  if (!hasPaymentMethod(input)) {
+    throw new Error(
+      `VoPay ${name} requires a payment method (clientAccountId, contactId, token, or full bank account details)`
+    );
+  }
+  const hasClientOrToken =
+    isPresent(input.clientAccountId) ||
+    isPresent(input.contactId) ||
+    hasConnectorToken(input);
+  const hasName =
+    (isPresent(input.firstName) && isPresent(input.lastName)) ||
+    isPresent(input.companyName);
+  if (!hasClientOrToken && !hasName) {
+    throw new Error(
+      `VoPay ${name} requires either firstName+lastName or companyName when bank account details are provided`
+    );
+  }
+}
+
+/**
  * Create a VoPay client for the VoPay API.
  *
  * The client is intentionally narrow: it posts requests, validates responses,
@@ -428,38 +472,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
   }
 
   async function eftFund(input: VoPayFundInput): Promise<VoPayFundResult> {
-    validateTransactionInput(input, 'eft/fund');
-    const anyBankField =
-      isPresent(input.accountNumber) ||
-      isPresent(input.financialInstitutionNumber) ||
-      isPresent(input.branchTransitNumber);
-    const allBankFields =
-      isPresent(input.accountNumber) &&
-      isPresent(input.financialInstitutionNumber) &&
-      isPresent(input.branchTransitNumber);
-    if (anyBankField && !allBankFields) {
-      throw new Error(
-        'VoPay eft/fund requires all bank account fields (accountNumber, financialInstitutionNumber, branchTransitNumber) when any are provided'
-      );
-    }
-    if (!hasPaymentMethod(input)) {
-      throw new Error(
-        'VoPay eft/fund requires a payment method (clientAccountId, contactId, token, or full bank account details)'
-      );
-    }
-    const hasClientOrToken =
-      isPresent(input.clientAccountId) ||
-      isPresent(input.contactId) ||
-      hasConnectorToken(input);
-    const hasName =
-      (isPresent(input.firstName) && isPresent(input.lastName)) ||
-      isPresent(input.companyName);
-    if (!hasClientOrToken && !hasName) {
-      throw new Error(
-        'VoPay eft/fund requires either firstName+lastName or companyName when bank account details are provided'
-      );
-    }
-
+    validateEftInput(input, 'eft/fund');
     const { raw: responseBody } = await post('eft/fund', buildFundFields(input));
     return buildEftResult(responseBody);
   }
@@ -491,38 +504,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
   }
 
   async function eftWithdraw(input: VoPayWithdrawInput): Promise<VoPayWithdrawResult> {
-    validateTransactionInput(input, 'eft/withdraw');
-    const anyBankField =
-      isPresent(input.accountNumber) ||
-      isPresent(input.financialInstitutionNumber) ||
-      isPresent(input.branchTransitNumber);
-    const allBankFields =
-      isPresent(input.accountNumber) &&
-      isPresent(input.financialInstitutionNumber) &&
-      isPresent(input.branchTransitNumber);
-    if (anyBankField && !allBankFields) {
-      throw new Error(
-        'VoPay eft/withdraw requires all bank account fields (accountNumber, financialInstitutionNumber, branchTransitNumber) when any are provided'
-      );
-    }
-    if (!hasPaymentMethod(input)) {
-      throw new Error(
-        'VoPay eft/withdraw requires a payment method (clientAccountId, contactId, token, or full bank account details)'
-      );
-    }
-    const hasClientOrToken =
-      isPresent(input.clientAccountId) ||
-      isPresent(input.contactId) ||
-      hasConnectorToken(input);
-    const hasName =
-      (isPresent(input.firstName) && isPresent(input.lastName)) ||
-      isPresent(input.companyName);
-    if (!hasClientOrToken && !hasName) {
-      throw new Error(
-        'VoPay eft/withdraw requires either firstName+lastName or companyName when bank account details are provided'
-      );
-    }
-
+    validateEftInput(input, 'eft/withdraw');
     const { raw: responseBody } = await post('eft/withdraw', buildWithdrawFields(input));
     return buildEftResult(responseBody);
   }
