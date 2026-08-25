@@ -592,10 +592,16 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
     };
   }
 
-  async function generateEmbedUrl(
-    input: VoPayGenerateEmbedUrlInput = {}
-  ): Promise<VoPayGenerateEmbedUrlResult> {
-    const fields: Record<string, string | undefined> = {
+  /**
+   * Build the form body for the iQ11 embed URL generator.
+   *
+   * Boolean flags are stringified and included only when explicitly supplied,
+   * so the provider receives `true`/`false` rather than `undefined`.
+   */
+  function buildEmbedFields(
+    input: VoPayGenerateEmbedUrlInput
+  ): Record<string, string | undefined> {
+    const embedFields: Record<string, string | undefined> = {
       ClientAccountID: input.clientAccountId,
       RedirectURL: input.redirectUrl,
       RedirectMethod: input.redirectMethod,
@@ -609,24 +615,41 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
       AcceptedCardBrands: input.acceptedCardBrands,
       AccountHolderType: input.accountHolderType,
     };
-    for (const [key, value] of Object.entries({
-      ClientControlled: input.clientControlled,
-      RequireDebitAuthorityAgreement: input.requireDebitAuthorityAgreement,
-      CardTypeValidation: input.cardTypeValidation,
-      Trigger3DS: input.trigger3DS,
-      DarkMode: input.darkMode,
-    })) {
+
+    const EMBED_BOOLEAN_FIELDS = [
+      ['ClientControlled', input.clientControlled],
+      ['RequireDebitAuthorityAgreement', input.requireDebitAuthorityAgreement],
+      ['CardTypeValidation', input.cardTypeValidation],
+      ['Trigger3DS', input.trigger3DS],
+      ['DarkMode', input.darkMode],
+    ] as const;
+    for (const [key, value] of EMBED_BOOLEAN_FIELDS) {
       if (value !== undefined) {
-        fields[key] = String(value);
+        embedFields[key] = String(value);
       }
     }
 
-    const { raw } = await post('iq11/generate-embed-url', fields);
+    return embedFields;
+  }
+
+  /**
+   * Generate an iQ11 embed URL for onboarding a client account.
+   *
+   * Returns the hosted URL and an iframe key when the provider accepts the
+   * request; both are extracted from the parsed response body.
+   */
+  async function generateEmbedUrl(
+    input: VoPayGenerateEmbedUrlInput = {}
+  ): Promise<VoPayGenerateEmbedUrlResult> {
+    const { raw: responseBody } = await post(
+      'iq11/generate-embed-url',
+      buildEmbedFields(input)
+    );
 
     return {
-      url: firstString(raw, ['EmbedURL']),
-      iframeKey: firstString(raw, ['IframeKey']),
-      raw,
+      url: firstString(responseBody, ['EmbedURL']),
+      iframeKey: firstString(responseBody, ['IframeKey']),
+      raw: responseBody,
     };
   }
 
