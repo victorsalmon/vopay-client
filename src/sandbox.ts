@@ -14,6 +14,9 @@ export function isSandboxEnabled(env: NodeJS.ProcessEnv = process.env): boolean 
   return !!env.VOPAY_SANDBOX_INTEGRATION;
 }
 
+/** Credential environment variables required for any real sandbox call. */
+const SANDBOX_CREDENTIAL_VARS = ['VOPAY_ACCOUNT_ID', 'VOPAY_API_KEY', 'VOPAY_SHARED_SECRET'] as const;
+
 /**
  * Load sandbox credentials from the environment and fail fast if anything is
  * missing. This is the single place both product tests and first-call scripts
@@ -24,9 +27,7 @@ export function requireSandboxCredentials(env: NodeJS.ProcessEnv = process.env):
     throw new Error('VOPAY_SANDBOX_INTEGRATION is not set');
   }
 
-  const missing = ['VOPAY_ACCOUNT_ID', 'VOPAY_API_KEY', 'VOPAY_SHARED_SECRET'].filter(
-    (name) => !env[name]?.trim()
-  );
+  const missing = SANDBOX_CREDENTIAL_VARS.filter((name) => !env[name]?.trim());
   if (missing.length > 0) {
     throw new Error(`Missing VoPay sandbox credentials: ${missing.join(', ')}`);
   }
@@ -41,8 +42,27 @@ export function requireSandboxCredentials(env: NodeJS.ProcessEnv = process.env):
  * calls. Uniqueness avoids collisions and duplicate-key rejections on retries.
  */
 export function uniqueClientReference(prefix = 'vopay-sandbox'): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  // Math.random() returns `0.xxxxx...`; `toString(36)` renders it as a short
+  // base-36 string starting with `0.`. We skip those two characters and keep a
+  // fixed-length suffix so the reference stays readable and URL-safe.
+  const RANDOM_STRING_RADIX = 36;
+  const RANDOM_PREFIX_SKIP = 2;
+  const RANDOM_SUFFIX_LENGTH = 6;
+  const randomSuffix = Math.random()
+    .toString(RANDOM_STRING_RADIX)
+    .slice(RANDOM_PREFIX_SKIP, RANDOM_PREFIX_SKIP + RANDOM_SUFFIX_LENGTH);
+  return `${prefix}-${Date.now()}-${randomSuffix}`;
 }
+
+/** HTTP status codes that unambiguously mean auth was denied. */
+const UNAUTHORIZED_STATUS = 401;
+const FORBIDDEN_STATUS = 403;
+
+/** Any status at or above this threshold is treated as a server-side problem. */
+const SERVER_ERROR_THRESHOLD = 500;
+
+/** Pattern for auth/allowlist/signature/onboarding failures in a response body. */
+const AUTH_REJECTION_PATTERN = /auth|allow|signature|ip|unauthorized| forbidden /i;
 
 /**
  * Heuristic for the failures that indicate the caller has not finished
@@ -50,9 +70,9 @@ export function uniqueClientReference(prefix = 'vopay-sandbox'): string {
  * A business validation error is NOT an auth/allowlist/signature failure.
  */
 export function isAuthOrSignatureRejection(response: Response, bodyText: string): boolean {
-  if (response.status === 401 || response.status === 403) return true;
-  if (response.status >= 500) return false;
-  return /auth|allow|signature|ip|unauthorized| forbidden /i.test(bodyText);
+  if (response.status === UNAUTHORIZED_STATUS || response.status === FORBIDDEN_STATUS) return true;
+  if (response.status >= SERVER_ERROR_THRESHOLD) return false;
+  return AUTH_REJECTION_PATTERN.test(bodyText);
 }
 
 
