@@ -372,36 +372,44 @@ function validateClientAccountInput(input: VoPayClientAccountInput): void {
  * consuming application.
  */
 export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch = fetch) {
+  /**
+   * POST `requestFields` to a VoPay `/api/v2/{endpoint}` path.
+   *
+   * Builds an `application/x-www-form-urlencoded` body, signs it, parses the
+   * JSON response, and turns provider-level HTTP and `Success=false` failures
+   * into typed errors. Non-JSON bodies are treated as empty objects so callers
+   * do not accidentally leak provider error text in logs.
+   */
   async function post(
     endpoint: string,
-    fields: Record<string, string | undefined>,
+    requestFields: Record<string, string | undefined>,
     idempotencyKey?: string
   ): Promise<{ raw: Record<string, unknown> }> {
-    const body = new URLSearchParams();
-    body.set('AccountID', config.accountId);
-    body.set('Key', config.apiKey);
-    body.set('Signature', sha1(config.apiKey + config.sharedSecret + todayUtc()));
+    const formBody = new URLSearchParams();
+    formBody.set('AccountID', config.accountId);
+    formBody.set('Key', config.apiKey);
+    formBody.set('Signature', sha1(config.apiKey + config.sharedSecret + todayUtc()));
     if (idempotencyKey !== undefined && idempotencyKey !== '') {
-      body.set('IdempotencyKey', idempotencyKey);
+      formBody.set('IdempotencyKey', idempotencyKey);
     }
-    for (const [key, value] of Object.entries(fields)) {
+    for (const [key, value] of Object.entries(requestFields)) {
       if (value !== undefined && value !== '') {
-        body.set(key, value);
+        formBody.set(key, value);
       }
     }
 
     const response = await fetchImpl(`${config.baseUrl}/api/v2/${endpoint}`, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body,
+      body: formBody,
     });
 
-    const text = await response.text();
-    let raw: Record<string, unknown> = {};
+    const responseText = await response.text();
+    let responseBody: Record<string, unknown> = {};
     try {
-      const parsed = JSON.parse(text) as unknown;
+      const parsed = JSON.parse(responseText) as unknown;
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        raw = parsed as Record<string, unknown>;
+        responseBody = parsed as Record<string, unknown>;
       }
     } catch {
       // The provider may return a non-JSON error body; do not echo it into logs.
@@ -410,15 +418,15 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
     if (!response.ok) {
       throw new Error(`VoPay ${endpoint} failed with HTTP ${response.status}`);
     }
-    if (raw.Success === false) {
-      const message = firstString(raw, ['ErrorMessage']) ?? 'unknown';
+    if (responseBody.Success === false) {
+      const message = firstString(responseBody, ['ErrorMessage']) ?? 'unknown';
       throw new Error(`VoPay ${endpoint} rejected: ${message}`);
     }
-    if (isProviderErrorStatus(raw)) {
+    if (isProviderErrorStatus(responseBody)) {
       throw new Error(`VoPay ${endpoint} rejected`);
     }
 
-    return { raw };
+    return { raw: responseBody };
   }
 
   async function requestMoney(input: VoPayMoneyRequestInput): Promise<VoPayMoneyRequestResult> {
