@@ -169,6 +169,10 @@ const CENTS_PER_DOLLAR = 100;
 /** VoPay transaction endpoints default to Canadian dollars. */
 const DEFAULT_CURRENCY = 'CAD';
 
+/** SIN last digits are a 0–9999 integer, i.e. up to four decimal digits. */
+const SIN_LAST_DIGITS_MIN = 0;
+const SIN_LAST_DIGITS_MAX = 9999;
+
 /**
  * Validate that `value` is a positive integer.
  *
@@ -328,6 +332,34 @@ function validateEftInput(
     throw new Error(
       `VoPay ${name} requires either firstName+lastName or companyName when bank account details are provided`
     );
+  }
+}
+
+/**
+ * Validate the required VoPay individual client account fields.
+ *
+ * All listed string fields are mandatory, and `sinLastDigits` must be a
+ * 0–9999 integer so it can be rendered as the last four SIN digits.
+ */
+function validateClientAccountInput(input: VoPayClientAccountInput): void {
+  const requiredFields = [
+    'clientAccountId',
+    'firstName',
+    'lastName',
+    'email',
+    'currency',
+    'phoneNumber',
+    'dateOfBirth',
+  ] as const;
+  for (const field of requiredFields) {
+    assertNonEmptyString(input[field], `createClientAccount ${field}`);
+  }
+  if (
+    !Number.isInteger(input.sinLastDigits) ||
+    input.sinLastDigits < SIN_LAST_DIGITS_MIN ||
+    input.sinLastDigits > SIN_LAST_DIGITS_MAX
+  ) {
+    throw new Error('VoPay createClientAccount requires a 4-digit sinLastDigits');
   }
 }
 
@@ -509,25 +541,19 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
     return buildEftResult(responseBody);
   }
 
+  /**
+   * Create an individual VoPay client account.
+   *
+   * The provider returns a verification link with an intentional typo in the
+   * key (`VerifcationLink`), so we check both spellings and prefer the
+   * corrected one when present.
+   */
   async function createClientAccount(
     input: VoPayClientAccountInput
   ): Promise<VoPayClientAccountResult> {
-    assertNonEmptyString(input.clientAccountId, 'createClientAccount clientAccountId');
-    assertNonEmptyString(input.firstName, 'createClientAccount firstName');
-    assertNonEmptyString(input.lastName, 'createClientAccount lastName');
-    assertNonEmptyString(input.email, 'createClientAccount email');
-    assertNonEmptyString(input.currency, 'createClientAccount currency');
-    assertNonEmptyString(input.phoneNumber, 'createClientAccount phoneNumber');
-    assertNonEmptyString(input.dateOfBirth, 'createClientAccount dateOfBirth');
-    if (
-      !Number.isInteger(input.sinLastDigits) ||
-      input.sinLastDigits < 0 ||
-      input.sinLastDigits > 9999
-    ) {
-      throw new Error('VoPay createClientAccount requires a 4-digit sinLastDigits');
-    }
+    validateClientAccountInput(input);
 
-    const { raw } = await post('account/client-accounts/individual', {
+    const { raw: responseBody } = await post('account/client-accounts/individual', {
       ClientAccountID: input.clientAccountId,
       FirstName: input.firstName,
       LastName: input.lastName,
@@ -551,10 +577,10 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
     });
 
     return {
-      clientAccountId: firstString(raw, ['ClientAccountID']),
-      status: firstString(raw, ['Status']),
-      verificationLink: firstString(raw, ['VerifcationLink', 'VerificationLink']),
-      raw,
+      clientAccountId: firstString(responseBody, ['ClientAccountID']),
+      status: firstString(responseBody, ['Status']),
+      verificationLink: firstString(responseBody, ['VerifcationLink', 'VerificationLink']),
+      raw: responseBody,
     };
   }
 
