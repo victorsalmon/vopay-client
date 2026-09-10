@@ -42,7 +42,6 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "postinstall": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:property": "vitest run property",
