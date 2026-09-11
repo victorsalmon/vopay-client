@@ -1,9 +1,9 @@
 # vopay-client
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-7.x-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-green.svg)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/tests-97%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-118%20passing-brightgreen.svg)](#testing)
 
 A product-neutral TypeScript client for the [VoPay](https://vopay.com) payment API —
 Canadian EFT (bank-to-bank), Interac money requests, client accounts, iFrame bank-connect,
@@ -89,7 +89,8 @@ provider identifiers without touching product state. Product-specific orchestrat
   a global `fetch`
 - **Provider-error detection** — recognizes `Success: false`, `Status: error|failed|declined`,
   and non-2xx HTTP statuses and throws a typed `Error`
-- **Mutation-tested** — 96.52% mutation score via [Stryker](https://stryker-mutator.io/)
+- **Mutation-tested** — last reported 96.52% mutation score via [Stryker](https://stryker-mutator.io/)
+  (see commit `7d9a509`; re-run `npm run test:mutation` to refresh)
 
 ---
 
@@ -100,7 +101,7 @@ npm install @clocklobster/vopay-client
 # or
 pnpm add @clocklobster/vopay-client
 # or
-yarn add vopay-client
+yarn add @clocklobster/vopay-client
 ```
 
 ### Requirements
@@ -642,15 +643,22 @@ The suite uses [Vitest](https://vitest.dev/) and covers three layers:
 
 | Test file | Layer | Tests |
 |---|---|---|
-| `test/vopay-client.test.ts` | Unit — config, webhook verification, sha1 | 25 |
+| `test/vopay-client.test.ts` | Unit — config, webhook verification, sha1 | 26 |
 | `test/vopay-endpoints.test.ts` | Unit — endpoint field building, validation, error handling | 64 |
-| `test/vopay-sandbox.test.ts` | Unit — sandbox helpers | 15 (7 skipped without creds) |
+| `test/vopay-sandbox.test.ts` | Unit — sandbox helpers | 16 (9 passing, 7 skipped without creds) |
 | `test/vopay-sandbox-contract.test.ts` | Integration — live sandbox API contract | 7 (all skipped without creds) |
+| `test/util.property.test.ts` | Property — sha1, webhook, config, sandbox helpers (fast-check) | 12 |
+| `test/client.property.test.ts` | Property — amount validation, generic post, EFT validation (fast-check) | 7 |
 
-**Total: 111 tests (97 passing, 14 skipped without sandbox credentials).**
+**Total: 132 tests (118 passing, 14 skipped without sandbox credentials).**
 
-Mutation testing via [Stryker](https://stryker-mutator.io/) achieves a **96.52% mutation
-score**, verifying the tests catch real bugs (not just line coverage).
+Reproduce with `npx vitest run` (default run excludes live calls unless
+`VOPAY_SANDBOX_INTEGRATION=1` is set).
+
+Mutation testing via [Stryker](https://stryker-mutator.io/) last reported a **96.52%
+mutation score** (commit `7d9a509`), verifying the tests catch real bugs (not just
+line coverage). Thresholds are configured in `stryker.config.json` (`high: 95`,
+`low: 90`); re-run `npm run test:mutation` to refresh the score.
 
 ```bash
 npm test                # vitest run (unit + endpoint tests, no live calls)
@@ -698,10 +706,12 @@ vopay-client/
 │   ├── util.ts       # sha1, todayUtc, firstString, isProviderErrorStatus
 │   └── index.ts      # public exports
 ├── test/
-│   ├── vopay-client.test.ts          # config + webhook + util unit tests
-│   ├── vopay-endpoints.test.ts       # endpoint field building + validation tests
-│   ├── vopay-sandbox.test.ts         # sandbox helper unit tests
-│   └── vopay-sandbox-contract.test.ts # live sandbox API contract tests (gated)
+│   ├── vopay-client.test.ts          # config + webhook + util unit tests (26)
+│   ├── vopay-endpoints.test.ts       # endpoint field building + validation tests (64)
+│   ├── vopay-sandbox.test.ts         # sandbox helper unit tests (16)
+│   ├── vopay-sandbox-contract.test.ts # live sandbox API contract tests, gated (7 skipped)
+│   ├── util.property.test.ts         # fast-check property tests: sha1, webhook, config (12)
+│   └── client.property.test.ts       # fast-check property tests: amounts, post, EFT (7)
 ├── docs/
 │   ├── SKILL.md       # integration skill — when to use, auth model, gotchas
 │   └── REFERENCE.md   # saved VoPay API reference — endpoints, validation tables, code samples
