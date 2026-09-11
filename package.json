@@ -40,7 +40,11 @@
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
+    "audit": "pnpm audit --prod",
     "build": "tsc -p tsconfig.build.json",
     "postinstall": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
