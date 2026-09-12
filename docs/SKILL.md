@@ -24,7 +24,7 @@ re-fetch the live docs when endpoint specifics matter.
 ## When to use
 - Building VoPay EFT fund/withdraw, client-account, or iFrame bank-connect flows.
 - Debugging a `401` / signature failure (almost always the date timezone or a stale secret).
-- Replacing a Stripe (or other) billing surface with VoPay.
+- Replacing another billing surface with VoPay.
 
 ## The auth model (the part that bites)
 Every request is **HTTP POST form-encoded → JSON**, and carries `APIkey` + `Signature` where:

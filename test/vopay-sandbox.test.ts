@@ -233,6 +233,17 @@ describe('sandbox helpers (no env required)', () => {
     expect(defaultRef).toMatch(/^vopay-sandbox-\d+-[a-z0-9]+$/);
   });
 
+  it('produces a six-character random suffix for every reference', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 100; i++) {
+      const ref = uniqueClientReference(i % 2 === 0 ? 'pfx' : 'vopay-sandbox');
+      const suffix = ref.slice(ref.lastIndexOf('-') + 1);
+      expect(suffix).toMatch(/^[a-z0-9]{6}$/);
+      seen.add(suffix);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
   it('identifies auth and signature rejections by status, even with an unrelated body', () => {
     const ok = new Response('{}', { status: 200 });
     expect(isAuthOrSignatureRejection(ok, '{}')).toBe(false);

@@ -163,26 +163,59 @@ export interface VoPayGenerateEmbedUrlResult {
   raw: Record<string, unknown>;
 }
 
+/** Number of cents in one dollar; VoPay amounts are submitted in dollars. */
+const CENTS_PER_DOLLAR = 100;
+
+/** VoPay transaction endpoints default to Canadian dollars. */
+const DEFAULT_CURRENCY = 'CAD';
+
+/** SIN last digits are a 0–9999 integer, i.e. up to four decimal digits. */
+const SIN_LAST_DIGITS_MIN = 0;
+const SIN_LAST_DIGITS_MAX = 9999;
+
+/**
+ * Validate that `value` is a positive integer.
+ *
+ * All monetary inputs are expected in cents, so fractional or non-positive
+ * values are rejected before they reach the provider.
+ */
 function assertPositiveInteger(value: number, name: string): void {
   if (!Number.isInteger(value) || value <= 0) {
     throw new Error(`VoPay ${name} requires a positive integer amountCents`);
   }
 }
 
+/** Convert an integer cent amount to a two-decimal dollar string for VoPay. */
+function formatDollarAmount(amountCents: number): string {
+  return (amountCents / CENTS_PER_DOLLAR).toFixed(2);
+}
+
+/** Return the trimmed value or an empty string, treating `undefined` as empty. */
 function trimmed(value: string | undefined): string {
   return value?.trim() ?? '';
 }
 
+/** Whether a string value is present (non-empty after trimming). */
 function isPresent(value: string | undefined): boolean {
   return trimmed(value).length > 0;
 }
 
+/**
+ * Throw if a required string is missing or whitespace-only.
+ *
+ * The `name` is included in the error so callers know which field failed,
+ * especially when many required values are validated together.
+ */
 function assertNonEmptyString(value: unknown, name: string): void {
   if (typeof value !== 'string' || value.trim() === '') {
     throw new Error(`VoPay ${name} is required`);
   }
 }
 
+/**
+ * Whether the input carries a third-party connector token that can stand in
+ * for raw bank account details.
+ */
 function hasConnectorToken(
   input: {
     token?: string;
@@ -208,6 +241,11 @@ function hasConnectorToken(
   );
 }
 
+/**
+ * Whether the input contains any acceptable payment method for an EFT
+ * transaction: a stored client account, a contact, a raw bank account, or
+ * one of the supported connector tokens.
+ */
 function hasPaymentMethod(
   input: {
     clientAccountId?: string;
@@ -232,6 +270,12 @@ function hasPaymentMethod(
   );
 }
 
+/**
+ * Validate the fields common to every EFT transaction.
+ *
+ * Each transaction must have a positive integer amount in cents, a non-empty
+ * currency, client reference, and idempotency key.
+ */
 function validateTransactionInput(
   input: {
     amountCents: number;
@@ -248,6 +292,78 @@ function validateTransactionInput(
 }
 
 /**
+ * Validate the additional rules for eft/fund and eft/withdraw.
+ *
+ * Bank account fields must be complete if any are provided, a payment method
+ * must be present, and a payee name is required when paying by raw bank
+ * account without a stored client account or connector token.
+ */
+function validateEftInput(
+  input: VoPayFundInput | VoPayWithdrawInput,
+  name: 'eft/fund' | 'eft/withdraw'
+): void {
+  validateTransactionInput(input, name);
+  const anyBankField =
+    isPresent(input.accountNumber) ||
+    isPresent(input.financialInstitutionNumber) ||
+    isPresent(input.branchTransitNumber);
+  const allBankFields =
+    isPresent(input.accountNumber) &&
+    isPresent(input.financialInstitutionNumber) &&
+    isPresent(input.branchTransitNumber);
+  if (anyBankField && !allBankFields) {
+    throw new Error(
+      `VoPay ${name} requires all bank account fields (accountNumber, financialInstitutionNumber, branchTransitNumber) when any are provided`
+    );
+  }
+  if (!hasPaymentMethod(input)) {
+    throw new Error(
+      `VoPay ${name} requires a payment method (clientAccountId, contactId, token, or full bank account details)`
+    );
+  }
+  const hasClientOrToken =
+    isPresent(input.clientAccountId) ||
+    isPresent(input.contactId) ||
+    hasConnectorToken(input);
+  const hasName =
+    (isPresent(input.firstName) && isPresent(input.lastName)) ||
+    isPresent(input.companyName);
+  if (!hasClientOrToken && !hasName) {
+    throw new Error(
+      `VoPay ${name} requires either firstName+lastName or companyName when bank account details are provided`
+    );
+  }
+}
+
+/**
+ * Validate the required VoPay individual client account fields.
+ *
+ * All listed string fields are mandatory, and `sinLastDigits` must be a
+ * 0–9999 integer so it can be rendered as the last four SIN digits.
+ */
+function validateClientAccountInput(input: VoPayClientAccountInput): void {
+  const requiredFields = [
+    'clientAccountId',
+    'firstName',
+    'lastName',
+    'email',
+    'currency',
+    'phoneNumber',
+    'dateOfBirth',
+  ] as const;
+  for (const field of requiredFields) {
+    assertNonEmptyString(input[field], `createClientAccount ${field}`);
+  }
+  if (
+    !Number.isInteger(input.sinLastDigits) ||
+    input.sinLastDigits < SIN_LAST_DIGITS_MIN ||
+    input.sinLastDigits > SIN_LAST_DIGITS_MAX
+  ) {
+    throw new Error('VoPay createClientAccount requires a 4-digit sinLastDigits');
+  }
+}
+
+/**
  * Create a VoPay client for the VoPay API.
  *
  * The client is intentionally narrow: it posts requests, validates responses,
@@ -256,36 +372,44 @@ function validateTransactionInput(
  * consuming application.
  */
 export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch = fetch) {
+  /**
+   * POST `requestFields` to a VoPay `/api/v2/{endpoint}` path.
+   *
+   * Builds an `application/x-www-form-urlencoded` body, signs it, parses the
+   * JSON response, and turns provider-level HTTP and `Success=false` failures
+   * into typed errors. Non-JSON bodies are treated as empty objects so callers
+   * do not accidentally leak provider error text in logs.
+   */
   async function post(
     endpoint: string,
-    fields: Record<string, string | undefined>,
+    requestFields: Record<string, string | undefined>,
     idempotencyKey?: string
   ): Promise<{ raw: Record<string, unknown> }> {
-    const body = new URLSearchParams();
-    body.set('AccountID', config.accountId);
-    body.set('Key', config.apiKey);
-    body.set('Signature', sha1(config.apiKey + config.sharedSecret + todayUtc()));
+    const formBody = new URLSearchParams();
+    formBody.set('AccountID', config.accountId);
+    formBody.set('Key', config.apiKey);
+    formBody.set('Signature', sha1(config.apiKey + config.sharedSecret + todayUtc()));
     if (idempotencyKey !== undefined && idempotencyKey !== '') {
-      body.set('IdempotencyKey', idempotencyKey);
+      formBody.set('IdempotencyKey', idempotencyKey);
     }
-    for (const [key, value] of Object.entries(fields)) {
+    for (const [key, value] of Object.entries(requestFields)) {
       if (value !== undefined && value !== '') {
-        body.set(key, value);
+        formBody.set(key, value);
       }
     }
 
     const response = await fetchImpl(`${config.baseUrl}/api/v2/${endpoint}`, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body,
+      body: formBody,
     });
 
-    const text = await response.text();
-    let raw: Record<string, unknown> = {};
+    const responseText = await response.text();
+    let responseBody: Record<string, unknown> = {};
     try {
-      const parsed = JSON.parse(text) as unknown;
+      const parsed = JSON.parse(responseText) as unknown;
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        raw = parsed as Record<string, unknown>;
+        responseBody = parsed as Record<string, unknown>;
       }
     } catch {
       // The provider may return a non-JSON error body; do not echo it into logs.
@@ -294,26 +418,24 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
     if (!response.ok) {
       throw new Error(`VoPay ${endpoint} failed with HTTP ${response.status}`);
     }
-    if (raw.Success === false) {
-      const message = firstString(raw, ['ErrorMessage']) ?? 'unknown';
+    if (responseBody.Success === false) {
+      const message = firstString(responseBody, ['ErrorMessage']) ?? 'unknown';
       throw new Error(`VoPay ${endpoint} rejected: ${message}`);
     }
-    if (isProviderErrorStatus(raw)) {
+    if (isProviderErrorStatus(responseBody)) {
       throw new Error(`VoPay ${endpoint} rejected`);
     }
 
-    return { raw };
+    return { raw: responseBody };
   }
 
   async function requestMoney(input: VoPayMoneyRequestInput): Promise<VoPayMoneyRequestResult> {
-    if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
-      throw new Error('VoPay money requests require a positive integer amountCents');
-    }
-    const { raw } = await post(
+    assertPositiveInteger(input.amountCents, 'money request');
+    const { raw: responseBody } = await post(
       'interac/money-request',
       {
-        Amount: (input.amountCents / 100).toFixed(2),
-        Currency: 'CAD',
+        Amount: formatDollarAmount(input.amountCents),
+        Currency: DEFAULT_CURRENCY,
         EmailAddress: input.recipientEmail,
         RecipientName: input.recipientName,
         MessageForRecipient: input.message,
@@ -323,7 +445,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
       input.idempotencyKey
     );
     return {
-      providerTransactionId: firstString(raw, [
+      providerTransactionId: firstString(responseBody, [
         'TransactionID',
         'TransactionId',
         'RequestID',
@@ -331,13 +453,21 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
         'ID',
         'id',
       ]),
-      raw,
+      raw: responseBody,
     };
   }
 
-  function buildFundFields(input: VoPayFundInput): Record<string, string | undefined> {
-    const fields: Record<string, string | undefined> = {
-      Amount: (input.amountCents / 100).toFixed(2),
+  /**
+   * Build the form body fields shared by eft/fund and eft/withdraw.
+   *
+   * This keeps the long, identical field mappings in one place so the
+   * fund- and withdraw-specific builders only add their unique keys.
+   */
+  function buildEftBaseFields(
+    input: VoPayFundInput | VoPayWithdrawInput
+  ): Record<string, string | undefined> {
+    return {
+      Amount: formatDollarAmount(input.amountCents),
       Currency: input.currency,
       ClientReferenceNumber: input.clientReferenceNumber,
       ClientAccountID: input.clientAccountId,
@@ -367,6 +497,12 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
       Notes: input.notes,
       IdempotencyKey: input.idempotencyKey,
       GLCode: input.glCode,
+    };
+  }
+
+  function buildFundFields(input: VoPayFundInput): Record<string, string | undefined> {
+    const fields: Record<string, string | undefined> = {
+      ...buildEftBaseFields(input),
       WalletID: input.walletId,
     };
     if (input.iq11VerificationLevelId !== undefined) {
@@ -376,148 +512,56 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
   }
 
   async function eftFund(input: VoPayFundInput): Promise<VoPayFundResult> {
-    validateTransactionInput(input, 'eft/fund');
-    const anyBankField =
-      isPresent(input.accountNumber) ||
-      isPresent(input.financialInstitutionNumber) ||
-      isPresent(input.branchTransitNumber);
-    const allBankFields =
-      isPresent(input.accountNumber) &&
-      isPresent(input.financialInstitutionNumber) &&
-      isPresent(input.branchTransitNumber);
-    if (anyBankField && !allBankFields) {
-      throw new Error(
-        'VoPay eft/fund requires all bank account fields (accountNumber, financialInstitutionNumber, branchTransitNumber) when any are provided'
-      );
-    }
-    if (!hasPaymentMethod(input)) {
-      throw new Error(
-        'VoPay eft/fund requires a payment method (clientAccountId, contactId, token, or full bank account details)'
-      );
-    }
-    const hasClientOrToken =
-      isPresent(input.clientAccountId) ||
-      isPresent(input.contactId) ||
-      hasConnectorToken(input);
-    const hasName =
-      (isPresent(input.firstName) && isPresent(input.lastName)) ||
-      isPresent(input.companyName);
-    if (!hasClientOrToken && !hasName) {
-      throw new Error(
-        'VoPay eft/fund requires either firstName+lastName or companyName when bank account details are provided'
-      );
-    }
-
-    const { raw } = await post('eft/fund', buildFundFields(input));
-    const flaggedReason =
-      typeof raw.Flagged === 'string' ? raw.Flagged.trim() || null : null;
-    return {
-      providerTransactionId: firstString(raw, ['TransactionID']),
-      flagged: flaggedReason !== null,
-      flaggedReason,
-      raw,
-    };
+    validateEftInput(input, 'eft/fund');
+    const { raw: responseBody } = await post('eft/fund', buildFundFields(input));
+    return buildEftResult(responseBody);
   }
 
   function buildWithdrawFields(input: VoPayWithdrawInput): Record<string, string | undefined> {
     return {
-      Amount: (input.amountCents / 100).toFixed(2),
-      Currency: input.currency,
-      ClientReferenceNumber: input.clientReferenceNumber,
-      ClientAccountID: input.clientAccountId,
-      ContactID: input.contactId,
-      FirstName: input.firstName,
-      LastName: input.lastName,
-      CompanyName: input.companyName,
-      Address1: input.address1,
-      City: input.city,
-      Province: input.province,
-      Country: input.country,
-      PostalCode: input.postalCode,
-      AccountNumber: input.accountNumber,
-      FinancialInstitutionNumber: input.financialInstitutionNumber,
-      BranchTransitNumber: input.branchTransitNumber,
-      Token: input.token,
-      FlinksAccountID: input.flinksAccountId,
-      FlinksLoginID: input.flinksLoginId,
-      PlaidPublicToken: input.plaidPublicToken,
-      PlaidAccessToken: input.plaidAccessToken,
-      PlaidAccountID: input.plaidAccountId,
-      PlaidProcessorToken: input.plaidProcessorToken,
-      MxAuthorizationCode: input.mxAuthorizationCode,
-      InveriteRequestGUID: input.inveriteRequestGuid,
+      ...buildEftBaseFields(input),
       ParentTransactionID: input.parentTransactionId,
-      TransactionTypeCode: input.transactionTypeCode,
-      TransactionLabel: input.transactionLabel,
-      Notes: input.notes,
-      IdempotencyKey: input.idempotencyKey,
-      GLCode: input.glCode,
+    };
+  }
+
+  /**
+   * Convert a parsed eft/fund or eft/withdraw response into the standard
+   * VoPay transaction result. Both endpoints share the same `TransactionID`
+   * and `Flagged` semantics, so a single builder avoids the duplicate
+   * response unwrapping that appeared in each method.
+   */
+  function buildEftResult(responseBody: Record<string, unknown>): VoPayFundResult {
+    const flaggedReason =
+      typeof responseBody.Flagged === 'string'
+        ? responseBody.Flagged.trim() || null
+        : null;
+    return {
+      providerTransactionId: firstString(responseBody, ['TransactionID']),
+      flagged: flaggedReason !== null,
+      flaggedReason,
+      raw: responseBody,
     };
   }
 
   async function eftWithdraw(input: VoPayWithdrawInput): Promise<VoPayWithdrawResult> {
-    validateTransactionInput(input, 'eft/withdraw');
-    const anyBankField =
-      isPresent(input.accountNumber) ||
-      isPresent(input.financialInstitutionNumber) ||
-      isPresent(input.branchTransitNumber);
-    const allBankFields =
-      isPresent(input.accountNumber) &&
-      isPresent(input.financialInstitutionNumber) &&
-      isPresent(input.branchTransitNumber);
-    if (anyBankField && !allBankFields) {
-      throw new Error(
-        'VoPay eft/withdraw requires all bank account fields (accountNumber, financialInstitutionNumber, branchTransitNumber) when any are provided'
-      );
-    }
-    if (!hasPaymentMethod(input)) {
-      throw new Error(
-        'VoPay eft/withdraw requires a payment method (clientAccountId, contactId, token, or full bank account details)'
-      );
-    }
-    const hasClientOrToken =
-      isPresent(input.clientAccountId) ||
-      isPresent(input.contactId) ||
-      hasConnectorToken(input);
-    const hasName =
-      (isPresent(input.firstName) && isPresent(input.lastName)) ||
-      isPresent(input.companyName);
-    if (!hasClientOrToken && !hasName) {
-      throw new Error(
-        'VoPay eft/withdraw requires either firstName+lastName or companyName when bank account details are provided'
-      );
-    }
-
-    const { raw } = await post('eft/withdraw', buildWithdrawFields(input));
-    const flaggedReason =
-      typeof raw.Flagged === 'string' ? raw.Flagged.trim() || null : null;
-    return {
-      providerTransactionId: firstString(raw, ['TransactionID']),
-      flagged: flaggedReason !== null,
-      flaggedReason,
-      raw,
-    };
+    validateEftInput(input, 'eft/withdraw');
+    const { raw: responseBody } = await post('eft/withdraw', buildWithdrawFields(input));
+    return buildEftResult(responseBody);
   }
 
+  /**
+   * Create an individual VoPay client account.
+   *
+   * The provider returns a verification link with an intentional typo in the
+   * key (`VerifcationLink`), so we check both spellings and prefer the
+   * corrected one when present.
+   */
   async function createClientAccount(
     input: VoPayClientAccountInput
   ): Promise<VoPayClientAccountResult> {
-    assertNonEmptyString(input.clientAccountId, 'createClientAccount clientAccountId');
-    assertNonEmptyString(input.firstName, 'createClientAccount firstName');
-    assertNonEmptyString(input.lastName, 'createClientAccount lastName');
-    assertNonEmptyString(input.email, 'createClientAccount email');
-    assertNonEmptyString(input.currency, 'createClientAccount currency');
-    assertNonEmptyString(input.phoneNumber, 'createClientAccount phoneNumber');
-    assertNonEmptyString(input.dateOfBirth, 'createClientAccount dateOfBirth');
-    if (
-      !Number.isInteger(input.sinLastDigits) ||
-      input.sinLastDigits < 0 ||
-      input.sinLastDigits > 9999
-    ) {
-      throw new Error('VoPay createClientAccount requires a 4-digit sinLastDigits');
-    }
+    validateClientAccountInput(input);
 
-    const { raw } = await post('account/client-accounts/individual', {
+    const { raw: responseBody } = await post('account/client-accounts/individual', {
       ClientAccountID: input.clientAccountId,
       FirstName: input.firstName,
       LastName: input.lastName,
@@ -541,17 +585,23 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
     });
 
     return {
-      clientAccountId: firstString(raw, ['ClientAccountID']),
-      status: firstString(raw, ['Status']),
-      verificationLink: firstString(raw, ['VerifcationLink', 'VerificationLink']),
-      raw,
+      clientAccountId: firstString(responseBody, ['ClientAccountID']),
+      status: firstString(responseBody, ['Status']),
+      verificationLink: firstString(responseBody, ['VerifcationLink', 'VerificationLink']),
+      raw: responseBody,
     };
   }
 
-  async function generateEmbedUrl(
-    input: VoPayGenerateEmbedUrlInput = {}
-  ): Promise<VoPayGenerateEmbedUrlResult> {
-    const fields: Record<string, string | undefined> = {
+  /**
+   * Build the form body for the iQ11 embed URL generator.
+   *
+   * Boolean flags are stringified and included only when explicitly supplied,
+   * so the provider receives `true`/`false` rather than `undefined`.
+   */
+  function buildEmbedFields(
+    input: VoPayGenerateEmbedUrlInput
+  ): Record<string, string | undefined> {
+    const embedFields: Record<string, string | undefined> = {
       ClientAccountID: input.clientAccountId,
       RedirectURL: input.redirectUrl,
       RedirectMethod: input.redirectMethod,
@@ -565,24 +615,41 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
       AcceptedCardBrands: input.acceptedCardBrands,
       AccountHolderType: input.accountHolderType,
     };
-    for (const [key, value] of Object.entries({
-      ClientControlled: input.clientControlled,
-      RequireDebitAuthorityAgreement: input.requireDebitAuthorityAgreement,
-      CardTypeValidation: input.cardTypeValidation,
-      Trigger3DS: input.trigger3DS,
-      DarkMode: input.darkMode,
-    })) {
+
+    const EMBED_BOOLEAN_FIELDS = [
+      ['ClientControlled', input.clientControlled],
+      ['RequireDebitAuthorityAgreement', input.requireDebitAuthorityAgreement],
+      ['CardTypeValidation', input.cardTypeValidation],
+      ['Trigger3DS', input.trigger3DS],
+      ['DarkMode', input.darkMode],
+    ] as const;
+    for (const [key, value] of EMBED_BOOLEAN_FIELDS) {
       if (value !== undefined) {
-        fields[key] = String(value);
+        embedFields[key] = String(value);
       }
     }
 
-    const { raw } = await post('iq11/generate-embed-url', fields);
+    return embedFields;
+  }
+
+  /**
+   * Generate an iQ11 embed URL for onboarding a client account.
+   *
+   * Returns the hosted URL and an iframe key when the provider accepts the
+   * request; both are extracted from the parsed response body.
+   */
+  async function generateEmbedUrl(
+    input: VoPayGenerateEmbedUrlInput = {}
+  ): Promise<VoPayGenerateEmbedUrlResult> {
+    const { raw: responseBody } = await post(
+      'iq11/generate-embed-url',
+      buildEmbedFields(input)
+    );
 
     return {
-      url: firstString(raw, ['EmbedURL']),
-      iframeKey: firstString(raw, ['IframeKey']),
-      raw,
+      url: firstString(responseBody, ['EmbedURL']),
+      iframeKey: firstString(responseBody, ['IframeKey']),
+      raw: responseBody,
     };
   }
 
