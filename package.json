@@ -26,9 +26,6 @@
   ],
   "type": "module",
   "sideEffects": false,
-  "engines": {
-    "node": ">=18"
-  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -48,7 +45,11 @@
     "LICENSE",
     "CHANGELOG.md"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
+    "audit": "pnpm audit --prod",
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",

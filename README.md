@@ -1,8 +1,10 @@
 # vopay-client
 
+[![CI](https://github.com/victorsalmon/vopay-client/actions/workflows/ci.yml/badge.svg)](https://github.com/victorsalmon/vopay-client/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@clocklobster/vopay-client.svg)](https://www.npmjs.com/package/@clocklobster/vopay-client)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-green.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.x-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-green.svg)](https://nodejs.org/)
 [![Tests](https://img.shields.io/badge/tests-118%20passing-brightgreen.svg)](#testing)
 
 A product-neutral TypeScript client for the [VoPay](https://vopay.com) payment API —
@@ -106,7 +108,7 @@ yarn add @clocklobster/vopay-client
 
 ### Requirements
 
-- **Node.js >= 18** (uses the global `fetch` API)
+- **Node.js >= 22** (uses the global `fetch` API)
 - **TypeScript >= 5** (for type consumers; the package ships `.d.ts` files)
 - A VoPay account with sandbox or production credentials
 - The caller's egress IP **allowlisted** in the VoPay portal (see [Auth model](#auth-model-the-part-that-bites))
@@ -114,6 +116,15 @@ yarn add @clocklobster/vopay-client
 ---
 
 ## Quick start
+
+Runs offline as documented: config from env with synthetic values plus webhook
+verification needs no credentials and no network. Runnable scripts live in
+[`examples/quickstart.ts`](examples/quickstart.ts) (config + webhook verify),
+[`examples/eft-fund-withdraw.ts`](examples/eft-fund-withdraw.ts) (EFT fund/withdraw
+with a mocked fetch), and
+[`examples/interac-request.ts`](examples/interac-request.ts) (Interac request with a
+mocked fetch) — e.g. `npx tsx examples/quickstart.ts`. Live calls need sandbox
+credentials and an allowlisted egress IP (see [Sandbox testing](#sandbox-testing)).
 
 ```typescript
 import { createVoPayClient, createVoPayConfigFromEnv } from '@clocklobster/vopay-client';
@@ -234,7 +245,7 @@ const vopay = createVoPayClient({
 Every request is **HTTP POST form-encoded → JSON**, and carries `AccountID` + `Key` +
 `Signature` where:
 
-```
+```text
 Signature = sha1( APIkey + SharedSecret + Date )    // Date = YYYY-MM-DD (UTC)
 ```
 
@@ -256,6 +267,18 @@ the full integration guide, validation tables, and gotchas.
 ---
 
 ## API reference
+
+One-to-one with the `src/index.ts` public exports
+(`VoPayConfig`, `createVoPayConfigFromEnv`, `VO_PAY_DEFAULT_BASE_URL`,
+`createVoPayClient`, `VoPayClient`, `VoPayFundInput`/`VoPayFundResult`,
+`VoPayWithdrawInput`/`VoPayWithdrawResult`, `VoPayMoneyRequestInput`/
+`VoPayMoneyRequestResult`, `VoPayClientAccountInput`/`VoPayClientAccountResult`,
+`VoPayGenerateEmbedUrlInput`/`VoPayGenerateEmbedUrlResult`, `post`,
+`requestMoney`, `eftFund`, `eftWithdraw`, `createClientAccount`,
+`generateEmbedUrl`, `verifyVoPayWebhook`, `getVoPayWebhookValue`, `voPaySha1`)
+plus the `vopay-client/sandbox` subpath helpers. Full per-export detail lives in
+[`docs/API.md`](docs/API.md); endpoint conventions, auth, and validation tables
+live in [`docs/REFERENCE.md`](docs/REFERENCE.md).
 
 ### `createVoPayClient(config, fetchImpl?)`
 
@@ -501,6 +524,9 @@ const txId = getVoPayWebhookValue(payload, ['TransactionID', 'TransactionId', 'I
 the payload using a list of possible keys (numbers are coerced to strings; empty/
 whitespace values are skipped).
 
+`voPaySha1(value)` re-exports the `sha1` helper from `src/util.ts` (40-char hex
+digest used for request signatures).
+
 ---
 
 ### Sandbox helpers
@@ -645,12 +671,18 @@ The suite uses [Vitest](https://vitest.dev/) and covers three layers:
 |---|---|---|
 | `test/vopay-client.test.ts` | Unit — config, webhook verification, sha1 | 26 |
 | `test/vopay-endpoints.test.ts` | Unit — endpoint field building, validation, error handling | 64 |
-| `test/vopay-sandbox.test.ts` | Unit — sandbox helpers | 16 (9 passing, 7 skipped without creds) |
+| `test/vopay-sandbox.test.ts` | Unit — sandbox helpers (9) + sandbox-gated live checks (7 skipped without creds) | 16 (7 skipped without creds) |
 | `test/vopay-sandbox-contract.test.ts` | Integration — live sandbox API contract | 7 (all skipped without creds) |
-| `test/util.property.test.ts` | Property — sha1, webhook, config, sandbox helpers (fast-check) | 12 |
-| `test/client.property.test.ts` | Property — amount validation, generic post, EFT validation (fast-check) | 7 |
+| `test/util.property.test.ts` | Property — sha1, config, webhook, sandbox helpers (fast-check) | 12 |
+| `test/client.property.test.ts` | Property — amount validation, generic post transport, EFT/fund-withdraw validation (fast-check) | 7 |
 
 **Total: 132 tests (118 passing, 14 skipped without sandbox credentials).**
+
+Without `VOPAY_SANDBOX_INTEGRATION=1` (plus `VOPAY_ACCOUNT_ID`,
+`VOPAY_API_KEY`, and `VOPAY_SHARED_SECRET`), the 7 sandbox tests in
+`test/vopay-sandbox.test.ts` and all 7 contract tests in
+`test/vopay-sandbox-contract.test.ts` are **skipped** (not failed), so
+credential-less runs stay green.
 
 Reproduce with `npx vitest run` (default run excludes live calls unless
 `VOPAY_SANDBOX_INTEGRATION=1` is set).
@@ -688,7 +720,7 @@ pnpm run build        # tsc -p tsconfig.build.json
 
 ### Requirements
 
-- Node.js >= 18
+- Node.js >= 22
 - pnpm (or npm/yarn — the package has no runtime dependencies)
 - TypeScript >= 5
 

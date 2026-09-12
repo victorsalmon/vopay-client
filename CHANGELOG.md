@@ -10,18 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - API reference (`docs/API.md`) — typed surface for `createVoPayClient`,
-  `createVoPayConfigFromEnv`, webhook helpers, and sandbox helpers,
-  reproducible from `src/index.ts`, `src/client.ts`, `src/config.ts`,
-  `src/webhook.ts`, `src/sandbox.ts`, and `src/util.ts`.
+  `createVoPayConfigFromEnv`, webhook helpers, and sandbox helpers, covering
+  every `src/index.ts` export plus the `sandbox` subpath; reproducible from
+  `src/index.ts`, `src/client.ts`, `src/config.ts`, `src/webhook.ts`,
+  `src/sandbox.ts`, and `src/util.ts`.
 - Offline-safe examples: `examples/eft-fund-withdraw.ts` (EFT fund + withdraw
   input shapes and validation) and `examples/interac-request.ts` (Interac money
   request input shape and validation). Both follow `examples/quickstart.ts`
-  (imports from `../src/index.js`, synthetic placeholder values only, live
-  calls left commented out).
-- Packaging metadata in `package.json`: `engines` (`node >= 18`, matching the
-  README requirements), `sideEffects: false`, `./package.json` export, and
-  explicit `files` entries for `README.md`, `LICENSE`, and `CHANGELOG.md`
-  alongside `dist`.
+  (imports from `../src/index.js`, synthetic config, mocked fetch, no
+  credentials, live calls left commented out).
+- Packaging metadata in `package.json`: `engines` (`node >= 22`, matching
+  `.nvmrc`), `sideEffects: false`, `./package.json` export, explicit `files`
+  entries for `README.md`, `LICENSE`, and `CHANGELOG.md` alongside `dist`, and
+  an `audit` script (`pnpm audit --prod`).
+- CI dependency-audit gate (`pnpm audit --prod`) failing on HIGH-or-worse
+  production advisories.
 
 ### Changed
 
@@ -29,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   plain install no longer requires the TypeScript toolchain while publishing
   still emits `dist/` via `tsc -p tsconfig.build.json`.
 - No runtime source, test, or credential changes in this release.
+
+### Fixed
+
+- Pending audit-plan fixes (by reference, unreleased): sandbox helper
+  correctness and transport hardening.
 
 ## [1.0.0] - 2025-01-15
 

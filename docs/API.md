@@ -49,6 +49,18 @@ import {
 overrides the base URL (trailing slash stripped). `createVoPayClient(config,
 fetchImpl = fetch)` accepts an injectable `fetch` for tests.
 
+```typescript
+interface VoPayConfig {
+  baseUrl: string;
+  accountId: string;
+  apiKey: string;
+  sharedSecret: string;
+}
+```
+
+`createVoPayClient` returns a `VoPayClient` exposing `post`, `requestMoney`,
+`eftFund`, `eftWithdraw`, `createClientAccount`, and `generateEmbedUrl`.
+
 ## Client methods (`src/client.ts`)
 
 All transactional calls POST form-encoded to
@@ -132,6 +144,9 @@ const txId = getVoPayWebhookValue(payload, ['TransactionID', 'RecordID', 'ID']);
 `getVoPayWebhookValue` returns the first non-empty string (finite numbers
 coerced; whitespace skipped) or `null`. Always verify before trusting a
 webhook for money state.
+
+`voPaySha1(value)` (re-export of `sha1` from `src/util.ts`) returns the
+40-char SHA-1 hex digest used for request signatures and webhook validation.
 
 ## Sandbox helpers (`./sandbox` subpath, `src/sandbox.ts`)
 
