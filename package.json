@@ -25,6 +25,10 @@
     "client"
   ],
   "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -35,13 +39,18 @@
     "./sandbox": {
       "import": "./dist/sandbox.js",
       "types": "./dist/sandbox.d.ts"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:property": "vitest run property",
