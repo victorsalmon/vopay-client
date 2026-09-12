@@ -10,3 +10,4 @@ stryker-report/
 .worktrees/
 .backup/
 .quarantine/
+.vitest/
