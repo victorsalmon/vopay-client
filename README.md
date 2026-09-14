@@ -268,17 +268,17 @@ the full integration guide, validation tables, and gotchas.
 
 ## API reference
 
-One-to-one with the `src/index.ts` public exports
-(`VoPayConfig`, `createVoPayConfigFromEnv`, `VO_PAY_DEFAULT_BASE_URL`,
-`createVoPayClient`, `VoPayClient`, `VoPayFundInput`/`VoPayFundResult`,
-`VoPayWithdrawInput`/`VoPayWithdrawResult`, `VoPayMoneyRequestInput`/
-`VoPayMoneyRequestResult`, `VoPayClientAccountInput`/`VoPayClientAccountResult`,
-`VoPayGenerateEmbedUrlInput`/`VoPayGenerateEmbedUrlResult`, `post`,
-`requestMoney`, `eftFund`, `eftWithdraw`, `createClientAccount`,
-`generateEmbedUrl`, `verifyVoPayWebhook`, `getVoPayWebhookValue`, `voPaySha1`)
-plus the `vopay-client/sandbox` subpath helpers. Full per-export detail lives in
-[`docs/API.md`](docs/API.md); endpoint conventions, auth, and validation tables
-live in [`docs/REFERENCE.md`](docs/REFERENCE.md).
+`src/index.ts` exports config helpers (`VoPayConfig`,
+`createVoPayConfigFromEnv`, `VO_PAY_DEFAULT_BASE_URL`), the client factory
+`createVoPayClient` with its public types (`VoPayClient` and the input/result
+types for money requests, funds, withdrawals, client accounts, and embed
+URLs), webhook helpers (`verifyVoPayWebhook`, `getVoPayWebhookValue`), and
+the `sha1` re-export (`voPaySha1`). Methods on a `VoPayClient` instance
+(`post`, `requestMoney`, `eftFund`, `eftWithdraw`, `createClientAccount`,
+`generateEmbedUrl`) and the `@clocklobster/vopay-client/sandbox` subpath
+helpers are part of the public surface as well. Full per-export detail
+lives in [`docs/API.md`](docs/API.md); endpoint conventions, auth, and
+validation tables live in [`docs/REFERENCE.md`](docs/REFERENCE.md).
 
 ### `createVoPayClient(config, fetchImpl?)`
 
@@ -531,7 +531,7 @@ digest used for request signatures).
 
 ### Sandbox helpers
 
-Import from the `vopay-client/sandbox` subpath:
+Import from the `@clocklobster/vopay-client/sandbox` subpath:
 
 ```typescript
 import {
@@ -540,7 +540,7 @@ import {
   uniqueClientReference,
   isAuthOrSignatureRejection,
   isProviderErrorStatus,
-} from 'vopay-client/sandbox';
+} from '@clocklobster/vopay-client/sandbox';
 ```
 
 | Function | Description |
@@ -603,7 +603,7 @@ result":
 
 ```typescript
 // Generate a unique key per attempt
-import { uniqueClientReference } from 'vopay-client/sandbox';
+import { uniqueClientReference } from '@clocklobster/vopay-client/sandbox';
 const idempotencyKey = uniqueClientReference('fund'); // e.g. "fund-1679876543210-k7f3a"
 ```
 
@@ -745,6 +745,7 @@ vopay-client/
 │   ├── util.property.test.ts         # fast-check property tests: sha1, webhook, config (12)
 │   └── client.property.test.ts       # fast-check property tests: amounts, post, EFT (7)
 ├── docs/
+│   ├── API.md         # per-export reference for the package public surface
 │   ├── SKILL.md       # integration skill — when to use, auth model, gotchas
 │   └── REFERENCE.md   # saved VoPay API reference — endpoints, validation tables, code samples
 ├── package.json

@@ -6,7 +6,7 @@
 pnpm install
 ```
 
-Requires Node.js >= 18 (see `.nvmrc`).
+Requires Node.js >= 22 (see `.nvmrc`).
 
 ## Test
 

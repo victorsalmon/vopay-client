@@ -9,7 +9,7 @@ helpers from `src/util.ts`.
 Package facts (verified in `package.json`): name
 `@clocklobster/vopay-client`, version `1.0.0`, ESM (`"type": "module"`),
 entry `dist/index.js` with types `dist/index.d.ts`, subpath
-`./sandbox` → `dist/sandbox.js`. Requires Node.js `>= 18` (`engines`,
+`./sandbox` → `dist/sandbox.js`. Requires Node.js `>= 22` (`engines`,
 `README.md` Requirements). No runtime dependencies.
 
 > Reference implementation: correct against the VoPay sandbox docs as of

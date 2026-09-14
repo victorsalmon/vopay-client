@@ -3,7 +3,7 @@
 > Saved from `https://docs.vopay.com/docs/getting-started` and
 > `https://docs.vopay.com/docs/api-overview` on 2025-01-15. **Code wins** — if this
 > guide and the live VoPay docs disagree, the live docs win; re-fetch before relying on
-> endpoint specifics. Re-fetch: `WebFetch`/`webReader` the URLs above.
+> endpoint specifics. Re-fetch the URLs above.
 
 VoPay is a Canadian payment-infrastructure API (EFT / bank-to-bank, card, etc.) used by
 software platforms to move money without building the rails themselves.
@@ -163,4 +163,4 @@ The following core flows are implemented in `src/client.ts`:
 
 Remaining flows to add as needed:
 - card / Interac / pre-authorized debit variants
-- webhook events + signature verification
+- webhook event retrieval (signature verification is implemented)
