@@ -12,13 +12,6 @@ beforeEach(() => {
   vi.restoreAllMocks();
 });
 
-function makeFetchMock(
-  body: Record<string, unknown>,
-  status = 200
-): (url: string, init?: RequestInit) => Promise<Response> {
-  return vi.fn(async () => new Response(JSON.stringify(body), { status }));
-}
-
 function baseConfig() {
   return {
     baseUrl: 'https://api.vopay.test',
@@ -74,8 +67,9 @@ describe('VoPay generic post', () => {
   it('throws when the provider responds with Success=false', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () =>
-        new Response(JSON.stringify({ Success: false, ErrorMessage: 'Nope' }), { status: 200 })
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ Success: false, ErrorMessage: 'Nope' }), { status: 200 })
       )
     );
     await expect(client.post('custom/endpoint', {})).rejects.toThrow(/rejected: Nope/);
@@ -108,7 +102,9 @@ describe('VoPay generic post', () => {
       baseConfig(),
       vi.fn(async () => new Response(JSON.stringify({ Success: false }), { status: 200 }))
     );
-    await expect(client.post('custom/endpoint', {})).rejects.toThrow('VoPay custom/endpoint rejected: unknown');
+    await expect(client.post('custom/endpoint', {})).rejects.toThrow(
+      'VoPay custom/endpoint rejected: unknown'
+    );
   });
 });
 
@@ -281,14 +277,15 @@ describe('VoPay eft/fund', () => {
   it('returns flagged details when the response contains a Flagged reason', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            TransactionID: 'tx-flag',
-            Flagged: 'Potential duplicate',
-          }),
-          { status: 200 }
-        )
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              TransactionID: 'tx-flag',
+              Flagged: 'Potential duplicate',
+            }),
+            { status: 200 }
+          )
       )
     );
     const result = await client.eftFund({
@@ -306,14 +303,15 @@ describe('VoPay eft/fund', () => {
   it('trims whitespace from the Flagged reason', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            TransactionID: 'tx-flag-ws',
-            Flagged: '  Potential duplicate  ',
-          }),
-          { status: 200 }
-        )
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              TransactionID: 'tx-flag-ws',
+              Flagged: '  Potential duplicate  ',
+            }),
+            { status: 200 }
+          )
       )
     );
     const result = await client.eftFund({
@@ -455,14 +453,15 @@ describe('VoPay eft/withdraw', () => {
   it('returns flagged details when the response contains a Flagged reason', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            TransactionID: 'tx-wd-flag',
-            Flagged: '  flagged  ',
-          }),
-          { status: 200 }
-        )
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              TransactionID: 'tx-wd-flag',
+              Flagged: '  flagged  ',
+            }),
+            { status: 200 }
+          )
       )
     );
     const result = await client.eftWithdraw({
@@ -577,8 +576,11 @@ describe('VoPay createClientAccount', () => {
   it('throws when the provider rejects account creation', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () =>
-        new Response(JSON.stringify({ Success: false, ErrorMessage: 'Invalid SIN' }), { status: 200 })
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ Success: false, ErrorMessage: 'Invalid SIN' }), {
+            status: 200,
+          })
       )
     );
     await expect(
@@ -614,16 +616,17 @@ describe('VoPay createClientAccount', () => {
   it('falls back to the corrected VerificationLink spelling', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            Success: true,
-            ClientAccountID: 'ca-1',
-            Status: 'verified',
-            VerificationLink: 'https://verify.vopay.test/ca-1',
-          }),
-          { status: 200 }
-        )
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              Success: true,
+              ClientAccountID: 'ca-1',
+              Status: 'verified',
+              VerificationLink: 'https://verify.vopay.test/ca-1',
+            }),
+            { status: 200 }
+          )
       )
     );
     const result = await client.createClientAccount({
@@ -681,8 +684,14 @@ describe('VoPay generateEmbedUrl', () => {
   it('works with no input and returns the URL and iframe key', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () =>
-        new Response(JSON.stringify({ Success: true, EmbedURL: 'https://url.test', IframeKey: 'key-1' }), { status: 200 })
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ Success: true, EmbedURL: 'https://url.test', IframeKey: 'key-1' }),
+            {
+              status: 200,
+            }
+          )
       )
     );
     const result = await client.generateEmbedUrl();
@@ -693,8 +702,11 @@ describe('VoPay generateEmbedUrl', () => {
   it('throws when the provider rejects the request', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () =>
-        new Response(JSON.stringify({ Success: false, ErrorMessage: 'Bad redirect' }), { status: 200 })
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ Success: false, ErrorMessage: 'Bad redirect' }), {
+            status: 200,
+          })
       )
     );
     await expect(client.generateEmbedUrl({ redirectUrl: 'bad' })).rejects.toThrow(/Bad redirect/);
@@ -707,7 +719,9 @@ describe('VoPay generateEmbedUrl', () => {
       capturedInit = init;
       return new Response(
         JSON.stringify({ Success: true, EmbedURL: 'https://embed.test', IframeKey: 'key-all' }),
-        { status: 200 }
+        {
+          status: 200,
+        }
       );
     });
     const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
@@ -980,7 +994,9 @@ describe('VoPay edge cases for mutation coverage', () => {
       capturedInit = init;
       return new Response(
         JSON.stringify({ Success: true, EmbedURL: 'https://embed.test', IframeKey: 'key-1' }),
-        { status: 200 }
+        {
+          status: 200,
+        }
       );
     });
     const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
@@ -1035,7 +1051,9 @@ describe('VoPay edge cases for mutation coverage', () => {
   it('accepts bank details with a clientAccountId and no name', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () => new Response(JSON.stringify({ TransactionID: 'tx-bank-ca' }), { status: 200 }))
+      vi.fn(
+        async () => new Response(JSON.stringify({ TransactionID: 'tx-bank-ca' }), { status: 200 })
+      )
     );
     const result = await client.eftWithdraw({
       amountCents: 1000,
@@ -1053,7 +1071,9 @@ describe('VoPay edge cases for mutation coverage', () => {
   it('accepts bank details with firstName+lastName and no client/token', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () => new Response(JSON.stringify({ TransactionID: 'tx-bank-name' }), { status: 200 }))
+      vi.fn(
+        async () => new Response(JSON.stringify({ TransactionID: 'tx-bank-name' }), { status: 200 })
+      )
     );
     const result = await client.eftWithdraw({
       amountCents: 1000,
@@ -1077,7 +1097,9 @@ describe('VoPay edge cases for mutation coverage', () => {
   it('accepts bank details with companyName and no client/token', async () => {
     const client = createVoPayClient(
       baseConfig(),
-      vi.fn(async () => new Response(JSON.stringify({ TransactionID: 'tx-bank-co' }), { status: 200 }))
+      vi.fn(
+        async () => new Response(JSON.stringify({ TransactionID: 'tx-bank-co' }), { status: 200 })
+      )
     );
     const result = await client.eftWithdraw({
       amountCents: 1000,
@@ -1234,7 +1256,9 @@ describe('VoPay edge cases for mutation coverage', () => {
   });
 
   it('accepts bank details with clientAccountId, contactId, or token and no name for eft/fund', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ TransactionID: 'tx' }), { status: 200 }));
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ TransactionID: 'tx' }), { status: 200 })
+    );
     const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
 
     await client.eftFund({
@@ -1274,7 +1298,9 @@ describe('VoPay edge cases for mutation coverage', () => {
   });
 
   it('accepts bank details with firstName+lastName or companyName and no client/token for eft/fund', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ TransactionID: 'tx' }), { status: 200 }));
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ TransactionID: 'tx' }), { status: 200 })
+    );
     const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
 
     await client.eftFund({
@@ -1314,7 +1340,9 @@ describe('VoPay edge cases for mutation coverage', () => {
   });
 
   it('accepts bank details with contactId or token and no name for eft/withdraw', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ TransactionID: 'tx' }), { status: 200 }));
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ TransactionID: 'tx' }), { status: 200 })
+    );
     const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
 
     await client.eftWithdraw({

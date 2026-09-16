@@ -15,7 +15,11 @@ export function isSandboxEnabled(env: NodeJS.ProcessEnv = process.env): boolean 
 }
 
 /** Credential environment variables required for any real sandbox call. */
-const SANDBOX_CREDENTIAL_VARS = ['VOPAY_ACCOUNT_ID', 'VOPAY_API_KEY', 'VOPAY_SHARED_SECRET'] as const;
+const SANDBOX_CREDENTIAL_VARS = [
+  'VOPAY_ACCOUNT_ID',
+  'VOPAY_API_KEY',
+  'VOPAY_SHARED_SECRET',
+] as const;
 
 /**
  * Load sandbox credentials from the environment and fail fast if anything is
@@ -74,5 +78,3 @@ export function isAuthOrSignatureRejection(response: Response, bodyText: string)
   if (response.status >= SERVER_ERROR_THRESHOLD) return false;
   return AUTH_REJECTION_PATTERN.test(bodyText);
 }
-
-

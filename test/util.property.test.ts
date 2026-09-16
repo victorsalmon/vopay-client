@@ -40,7 +40,7 @@ const jsonishValue = fc.oneof(
   fc.boolean(),
   fc.constant(null),
   fc.constant(undefined),
-  fc.record({ nested: fc.string({ maxLength: 4 }) }),
+  fc.record({ nested: fc.string({ maxLength: 4 }) })
 );
 
 describe('sha1 — property tests', () => {
@@ -51,7 +51,7 @@ describe('sha1 — property tests', () => {
         expect(out).toBe(createHash('sha1').update(s, 'utf8').digest('hex'));
         expect(out).toMatch(/^[a-f0-9]{40}$/);
         expect(voPaySha1(s)).toBe(out); // deterministic
-      }),
+      })
     );
   });
 
@@ -77,7 +77,7 @@ describe('firstString / getVoPayWebhookValue — property tests', () => {
     fc.assert(
       fc.property(recordArb, keysArb, (record, keys) => {
         expect(getVoPayWebhookValue(record, keys)).toBe(model(record, keys));
-      }),
+      })
     );
   });
 });
@@ -85,7 +85,7 @@ describe('firstString / getVoPayWebhookValue — property tests', () => {
 describe('isProviderErrorStatus — property tests', () => {
   const shallowObj = fc.dictionary(
     safeKey,
-    fc.oneof(fc.string({ maxLength: 8 }), fc.integer(), fc.constant(null), fc.boolean()),
+    fc.oneof(fc.string({ maxLength: 8 }), fc.integer(), fc.constant(null), fc.boolean())
   );
   const rawArb = fc.oneof(
     fc.constant(null),
@@ -93,14 +93,14 @@ describe('isProviderErrorStatus — property tests', () => {
     fc.string({ maxLength: 8 }),
     fc.integer(),
     shallowObj,
-    fc.array(fc.integer()),
+    fc.array(fc.integer())
   );
 
   const model = (raw: unknown): boolean => {
     if (!raw || typeof raw !== 'object') return false;
     const record = raw as Record<string, unknown>;
     const status = String(
-      record.Status ?? record.status ?? record.Result ?? record.result ?? '',
+      record.Status ?? record.status ?? record.Result ?? record.result ?? ''
     ).toLowerCase();
     return ['error', 'failed', 'failure', 'declined'].includes(status);
   };
@@ -109,7 +109,7 @@ describe('isProviderErrorStatus — property tests', () => {
     fc.assert(
       fc.property(rawArb, (raw) => {
         expect(isProviderErrorStatus(raw)).toBe(model(raw));
-      }),
+      })
     );
   });
 });
@@ -120,29 +120,31 @@ describe('createVoPayConfigFromEnv — property tests', () => {
       fc.constant(undefined),
       fc.constant(''),
       fc.constant('   '),
-      fc.string({ minLength: 1, maxLength: 20 }),
+      fc.string({ minLength: 1, maxLength: 20 })
     ),
     VOPAY_BASE_URL: fc.oneof(
       fc.constant(undefined),
       fc.constant(''),
       fc.constant('   '),
-      fc.string({ minLength: 1, maxLength: 20 }).map((s) => (s.endsWith('/') ? s : s + '/')),
+      fc.string({ minLength: 1, maxLength: 20 }).map((s) => (s.endsWith('/') ? s : s + '/'))
     ),
     VOPAY_ACCOUNT_ID: fc.oneof(
       fc.constant(undefined),
       fc.constant(''),
       fc.constant('   '),
-      fc.string({ minLength: 1, maxLength: 20 }),
+      fc.string({ minLength: 1, maxLength: 20 })
     ),
     VOPAY_SHARED_SECRET: fc.oneof(
       fc.constant(undefined),
       fc.constant(''),
       fc.constant('   '),
-      fc.string({ minLength: 1, maxLength: 20 }),
+      fc.string({ minLength: 1, maxLength: 20 })
     ),
   });
 
-  const model = (env: Record<string, string | undefined>): {
+  const model = (
+    env: Record<string, string | undefined>
+  ): {
     baseUrl: string;
     accountId: string;
     apiKey: string;
@@ -161,7 +163,12 @@ describe('createVoPayConfigFromEnv — property tests', () => {
   it('matches the modelled contract (return value or thrown message) for every env', () => {
     fc.assert(
       fc.property(envArb, (env) => {
-        let modelled: { baseUrl: string; accountId: string; apiKey: string; sharedSecret: string } | null;
+        let modelled: {
+          baseUrl: string;
+          accountId: string;
+          apiKey: string;
+          sharedSecret: string;
+        } | null;
         let modelErr: string | null = null;
         try {
           modelled = model(env);
@@ -174,7 +181,7 @@ describe('createVoPayConfigFromEnv — property tests', () => {
         } else {
           expect(createVoPayConfigFromEnv(env)).toEqual(modelled);
         }
-      }),
+      })
     );
   });
 
@@ -194,7 +201,7 @@ describe('createVoPayConfigFromEnv — property tests', () => {
           expect(cfg.accountId).toBe(env.VOPAY_ACCOUNT_ID!.trim());
           expect(cfg.sharedSecret).toBe(env.VOPAY_SHARED_SECRET!.trim());
         }
-      }),
+      })
     );
   });
 });
@@ -202,24 +209,33 @@ describe('createVoPayConfigFromEnv — property tests', () => {
 describe('verifyVoPayWebhook — property tests', () => {
   it('accepts iff the trimmed, lower-cased key equals sha1(secret + recordId)', () => {
     fc.assert(
-      fc.property(fc.string(), fc.string(), fc.string(), (recordId, validationKey, sharedSecret) => {
-        const expected = voPaySha1(sharedSecret + recordId);
-        const accept = validationKey.trim().toLowerCase() === expected;
-        expect(verifyVoPayWebhook(recordId, validationKey, sharedSecret)).toBe(accept);
-      }),
+      fc.property(
+        fc.string(),
+        fc.string(),
+        fc.string(),
+        (recordId, validationKey, sharedSecret) => {
+          const expected = voPaySha1(sharedSecret + recordId);
+          const accept = validationKey.trim().toLowerCase() === expected;
+          expect(verifyVoPayWebhook(recordId, validationKey, sharedSecret)).toBe(accept);
+        }
+      )
     );
   });
 
   it('accepts the correct key regardless of case and surrounding whitespace', () => {
     fc.assert(
-      fc.property(fc.string({ minLength: 1 }), fc.string({ minLength: 1 }), (recordId, sharedSecret) => {
-        const key = voPaySha1(sharedSecret + recordId);
-        expect(verifyVoPayWebhook(recordId, key.toUpperCase(), sharedSecret)).toBe(true);
-        expect(verifyVoPayWebhook(recordId, `  ${key}  `, sharedSecret)).toBe(true);
-        expect(verifyVoPayWebhook(recordId, voPaySha1(sharedSecret + recordId + 'x'), sharedSecret)).toBe(
-          false,
-        );
-      }),
+      fc.property(
+        fc.string({ minLength: 1 }),
+        fc.string({ minLength: 1 }),
+        (recordId, sharedSecret) => {
+          const key = voPaySha1(sharedSecret + recordId);
+          expect(verifyVoPayWebhook(recordId, key.toUpperCase(), sharedSecret)).toBe(true);
+          expect(verifyVoPayWebhook(recordId, `  ${key}  `, sharedSecret)).toBe(true);
+          expect(
+            verifyVoPayWebhook(recordId, voPaySha1(sharedSecret + recordId + 'x'), sharedSecret)
+          ).toBe(false);
+        }
+      )
     );
   });
 });
@@ -230,7 +246,7 @@ describe('sandbox helpers — property tests', () => {
     fc.constant(''),
     fc.constant('0'),
     fc.constant('1'),
-    fc.string({ maxLength: 5 }),
+    fc.string({ maxLength: 5 })
   );
 
   it('isSandboxEnabled is the boolean coercion of VOPAY_SANDBOX_INTEGRATION', () => {
@@ -238,15 +254,30 @@ describe('sandbox helpers — property tests', () => {
       fc.property(flagArb, (flag) => {
         const env = flag === undefined ? {} : { VOPAY_SANDBOX_INTEGRATION: flag };
         expect(isSandboxEnabled(env)).toBe(!!flag);
-      }),
+      })
     );
   });
 
   const credEnvArb = fc.record({
     VOPAY_SANDBOX_INTEGRATION: flagArb,
-    VOPAY_ACCOUNT_ID: fc.oneof(fc.constant(undefined), fc.constant(''), fc.constant('  '), fc.string({ minLength: 1, maxLength: 16 })),
-    VOPAY_API_KEY: fc.oneof(fc.constant(undefined), fc.constant(''), fc.constant('  '), fc.string({ minLength: 1, maxLength: 16 })),
-    VOPAY_SHARED_SECRET: fc.oneof(fc.constant(undefined), fc.constant(''), fc.constant('  '), fc.string({ minLength: 1, maxLength: 16 })),
+    VOPAY_ACCOUNT_ID: fc.oneof(
+      fc.constant(undefined),
+      fc.constant(''),
+      fc.constant('  '),
+      fc.string({ minLength: 1, maxLength: 16 })
+    ),
+    VOPAY_API_KEY: fc.oneof(
+      fc.constant(undefined),
+      fc.constant(''),
+      fc.constant('  '),
+      fc.string({ minLength: 1, maxLength: 16 })
+    ),
+    VOPAY_SHARED_SECRET: fc.oneof(
+      fc.constant(undefined),
+      fc.constant(''),
+      fc.constant('  '),
+      fc.string({ minLength: 1, maxLength: 16 })
+    ),
   });
 
   it('requireSandboxCredentials matches the modelled contract', () => {
@@ -255,7 +286,7 @@ describe('sandbox helpers — property tests', () => {
         throw new Error('VOPAY_SANDBOX_INTEGRATION is not set');
       }
       const missing = ['VOPAY_ACCOUNT_ID', 'VOPAY_API_KEY', 'VOPAY_SHARED_SECRET'].filter(
-        (name) => !env[name]?.trim(),
+        (name) => !env[name]?.trim()
       );
       if (missing.length > 0) {
         throw new Error(`Missing VoPay sandbox credentials: ${missing.join(', ')}`);
@@ -277,21 +308,23 @@ describe('sandbox helpers — property tests', () => {
         } else {
           expect(requireSandboxCredentials(env)).toEqual(modelCfg);
         }
-      }),
+      })
     );
   });
 
   it('uniqueClientReference matches the prefix-<digits>-<alnum> shape and is unique per call', () => {
-    const prefixArb = fc.string({ minLength: 1, maxLength: 12 }).map((s) =>
-      s.replace(/[^a-zA-Z0-9_-]/g, '') || 'pfx',
-    );
+    const prefixArb = fc
+      .string({ minLength: 1, maxLength: 12 })
+      .map((s) => s.replace(/[^a-zA-Z0-9_-]/g, '') || 'pfx');
     fc.assert(
       fc.property(prefixArb, (prefix) => {
         const a = uniqueClientReference(prefix);
         const b = uniqueClientReference(prefix);
-        expect(a).toMatch(new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-\\d+-[a-z0-9]+$`));
+        expect(a).toMatch(
+          new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-\\d+-[a-z0-9]+$`)
+        );
         expect(a).not.toBe(b);
-      }),
+      })
     );
     // Default prefix.
     expect(uniqueClientReference()).toMatch(/^vopay-sandbox-\d+-[a-z0-9]+$/);
@@ -309,10 +342,10 @@ describe('sandbox helpers — property tests', () => {
         fc.string(),
         (status, bodyText) => {
           expect(isAuthOrSignatureRejection(new Response(bodyText, { status }), bodyText)).toBe(
-            model(status, bodyText),
+            model(status, bodyText)
           );
-        },
-      ),
+        }
+      )
     );
   });
 });

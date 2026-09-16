@@ -30,7 +30,7 @@ async function main(): Promise<void> {
       apiKey: 'sandbox-api-key',
       sharedSecret: 'sandbox-shared-secret',
     },
-    syntheticFetch,
+    syntheticFetch
   );
   console.log('client created:', typeof vopay.requestMoney === 'function'); // true
 

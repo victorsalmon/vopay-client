@@ -8,49 +8,51 @@ import {
   uniqueClientReference,
 } from '../src/sandbox.js';
 
-describe.skipIf(!isSandboxEnabled())('VoPay sandbox — existing Interac money request endpoint', () => {
-  it('round-trips the signature algorithm with the real shared secret', () => {
-    const config = requireSandboxCredentials();
-    const recordId = uniqueClientReference('sig');
-    const expected = voPaySha1(config.sharedSecret + recordId);
+describe.skipIf(!isSandboxEnabled())(
+  'VoPay sandbox — existing Interac money request endpoint',
+  () => {
+    it('round-trips the signature algorithm with the real shared secret', () => {
+      const config = requireSandboxCredentials();
+      const recordId = uniqueClientReference('sig');
+      const expected = voPaySha1(config.sharedSecret + recordId);
 
-    expect(voPaySha1(config.sharedSecret + recordId)).toBe(expected);
-    expect(expected).toMatch(/^[a-f0-9]{40}$/);
-  });
+      expect(voPaySha1(config.sharedSecret + recordId)).toBe(expected);
+      expect(expected).toMatch(/^[a-f0-9]{40}$/);
+    });
 
-  it('reaches the sandbox via requestMoney without auth/allowlist/signature rejection', async () => {
-    const config = requireSandboxCredentials();
-    const client = createVoPayClient(config);
-    const clientReferenceNumber = uniqueClientReference();
+    it('reaches the sandbox via requestMoney without auth/allowlist/signature rejection', async () => {
+      const config = requireSandboxCredentials();
+      const client = createVoPayClient(config);
+      const clientReferenceNumber = uniqueClientReference();
 
-    try {
-      const result = await client.requestMoney({
-        amountCents: 8500,
-        recipientEmail: 'tenant@sandbox.vopay.com',
-        recipientName: 'Sandbox Tenant',
-        message: `Shared-client sandbox test ${clientReferenceNumber}`,
-        clientReferenceNumber,
-        idempotencyKey: uniqueClientReference('idem'),
-      });
-      expect(result.providerTransactionId).toBeTruthy();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      expect(
-        message,
-        `auth/allowlist/signature failure: ${message}`
-      ).not.toMatch(/401|403|allowlist|signature|auth/i);
-    }
-  });
+      try {
+        const result = await client.requestMoney({
+          amountCents: 8500,
+          recipientEmail: 'tenant@sandbox.vopay.com',
+          recipientName: 'Sandbox Tenant',
+          message: `Shared-client sandbox test ${clientReferenceNumber}`,
+          clientReferenceNumber,
+          idempotencyKey: uniqueClientReference('idem'),
+        });
+        expect(result.providerTransactionId).toBeTruthy();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        expect(message, `auth/allowlist/signature failure: ${message}`).not.toMatch(
+          /401|403|allowlist|signature|auth/i
+        );
+      }
+    });
 
-  it('verifies a webhook ValidationKey with the real shared secret', () => {
-    const config = requireSandboxCredentials();
-    const recordId = uniqueClientReference('record');
-    const validationKey = voPaySha1(config.sharedSecret + recordId);
+    it('verifies a webhook ValidationKey with the real shared secret', () => {
+      const config = requireSandboxCredentials();
+      const recordId = uniqueClientReference('record');
+      const validationKey = voPaySha1(config.sharedSecret + recordId);
 
-    expect(verifyVoPayWebhook(recordId, validationKey, config.sharedSecret)).toBe(true);
-    expect(verifyVoPayWebhook(recordId, `${validationKey}x`, config.sharedSecret)).toBe(false);
-  });
-});
+      expect(verifyVoPayWebhook(recordId, validationKey, config.sharedSecret)).toBe(true);
+      expect(verifyVoPayWebhook(recordId, `${validationKey}x`, config.sharedSecret)).toBe(false);
+    });
+  }
+);
 
 describe.skipIf(!isSandboxEnabled())('VoPay sandbox — remaining core endpoints', () => {
   it('reaches the sandbox via eft/fund', async () => {
@@ -178,9 +180,9 @@ describe('sandbox helpers (no env required)', () => {
   });
 
   it('throws for missing sandbox credentials and lists them with a comma separator', () => {
-    expect(() =>
-      requireSandboxCredentials({ VOPAY_SANDBOX_INTEGRATION: '1' })
-    ).toThrow(/VOPAY_ACCOUNT_ID/);
+    expect(() => requireSandboxCredentials({ VOPAY_SANDBOX_INTEGRATION: '1' })).toThrow(
+      /VOPAY_ACCOUNT_ID/
+    );
 
     expect(() =>
       requireSandboxCredentials({

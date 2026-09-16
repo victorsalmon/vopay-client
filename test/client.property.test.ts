@@ -33,14 +33,14 @@ const amountArb = fc.oneof(
   fc.float({ min: -1000, max: 1_000_000, noNaN: true }),
   fc.constant(0),
   fc.constant(100.5),
-  fc.constant(-1),
+  fc.constant(-1)
 );
 
 const optStr = fc.oneof(
   fc.constant(undefined),
   fc.constant(''),
   fc.constant('   '),
-  fc.string({ minLength: 1, maxLength: 12 }),
+  fc.string({ minLength: 1, maxLength: 12 })
 );
 
 function isPresent(v: string | undefined): boolean {
@@ -92,10 +92,7 @@ function hasPaymentMethod(i: {
   );
 }
 
-function modelEftValidation(
-  i: VoPayFundInput,
-  name: 'eft/fund' | 'eft/withdraw',
-): string | null {
+function modelEftValidation(i: VoPayFundInput, name: 'eft/fund' | 'eft/withdraw'): string | null {
   if (!Number.isInteger(i.amountCents) || i.amountCents <= 0) {
     return `VoPay ${name} requires a positive integer amountCents`;
   }
@@ -167,7 +164,7 @@ describe('VoPay amount validation — property tests', () => {
         } else {
           await expect(client.requestMoney(input)).rejects.toThrow(/positive integer/);
         }
-      }),
+      })
     );
   });
 
@@ -190,7 +187,7 @@ describe('VoPay amount validation — property tests', () => {
         });
         const form = new URLSearchParams(String(captured?.body ?? ''));
         expect(form.get('Amount')).toBe((n / 100).toFixed(2));
-      }),
+      })
     );
   });
 });
@@ -221,27 +218,25 @@ describe('VoPay generic post — property tests', () => {
           if (v !== undefined && v !== '') expect(form.get(k)).toBe(v);
           else expect(form.get(k)).toBeNull();
         }
-      }),
+      })
     );
   });
 
   it('throws "rejected: <ErrorMessage>" (trimmed) or "rejected: unknown" when Success=false', async () => {
     const bodyArb = fc.oneof(
       fc.record({ Success: fc.constant(false), ErrorMessage: fc.string({ maxLength: 20 }) }),
-      fc.record({ Success: fc.constant(false) }),
+      fc.record({ Success: fc.constant(false) })
     );
     await fc.assert(
       fc.asyncProperty(bodyArb, async (body) => {
         const fetchMock = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }));
         const client = createVoPayClient(baseConfig(), fetchMock as unknown as typeof fetch);
         const msg =
-          'ErrorMessage' in body && body.ErrorMessage.trim()
-            ? body.ErrorMessage.trim()
-            : 'unknown';
+          'ErrorMessage' in body && body.ErrorMessage.trim() ? body.ErrorMessage.trim() : 'unknown';
         await expect(client.post('custom/endpoint', {})).rejects.toThrow(
-          `VoPay custom/endpoint rejected: ${msg}`,
+          `VoPay custom/endpoint rejected: ${msg}`
         );
-      }),
+      })
     );
   });
 
@@ -261,7 +256,7 @@ describe('VoPay generic post — property tests', () => {
         // todayUtc() is date-dependent; recompute the same way the client does.
         const today = new Date().toISOString().slice(0, 10);
         expect(sig).toBe(voPaySha1('api-key-1' + 'shared-1' + today));
-      }),
+      })
     );
   });
 });
@@ -277,7 +272,7 @@ describe('VoPay eft/fund validation — property tests', () => {
         } else {
           await expect(client.eftFund(input)).resolves.toBeDefined();
         }
-      }),
+      })
     );
   });
 });
@@ -294,7 +289,7 @@ describe('VoPay eft/withdraw validation — property tests', () => {
         } else {
           await expect(client.eftWithdraw(input)).resolves.toBeDefined();
         }
-      }),
+      })
     );
   });
 });

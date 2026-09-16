@@ -216,19 +216,17 @@ function assertNonEmptyString(value: unknown, name: string): void {
  * Whether the input carries a third-party connector token that can stand in
  * for raw bank account details.
  */
-function hasConnectorToken(
-  input: {
-    token?: string;
-    flinksAccountId?: string;
-    flinksLoginId?: string;
-    plaidPublicToken?: string;
-    plaidAccessToken?: string;
-    plaidAccountId?: string;
-    plaidProcessorToken?: string;
-    mxAuthorizationCode?: string;
-    inveriteRequestGuid?: string;
-  }
-): boolean {
+function hasConnectorToken(input: {
+  token?: string;
+  flinksAccountId?: string;
+  flinksLoginId?: string;
+  plaidPublicToken?: string;
+  plaidAccessToken?: string;
+  plaidAccountId?: string;
+  plaidProcessorToken?: string;
+  mxAuthorizationCode?: string;
+  inveriteRequestGuid?: string;
+}): boolean {
   return (
     isPresent(input.token) ||
     (isPresent(input.flinksAccountId) && isPresent(input.flinksLoginId)) ||
@@ -246,22 +244,20 @@ function hasConnectorToken(
  * transaction: a stored client account, a contact, a raw bank account, or
  * one of the supported connector tokens.
  */
-function hasPaymentMethod(
-  input: {
-    clientAccountId?: string;
-    contactId?: string;
-    token?: string;
-    accountNumber?: string;
-    flinksAccountId?: string;
-    flinksLoginId?: string;
-    plaidPublicToken?: string;
-    plaidAccessToken?: string;
-    plaidAccountId?: string;
-    plaidProcessorToken?: string;
-    mxAuthorizationCode?: string;
-    inveriteRequestGuid?: string;
-  }
-): boolean {
+function hasPaymentMethod(input: {
+  clientAccountId?: string;
+  contactId?: string;
+  token?: string;
+  accountNumber?: string;
+  flinksAccountId?: string;
+  flinksLoginId?: string;
+  plaidPublicToken?: string;
+  plaidAccessToken?: string;
+  plaidAccountId?: string;
+  plaidProcessorToken?: string;
+  mxAuthorizationCode?: string;
+  inveriteRequestGuid?: string;
+}): boolean {
   return (
     isPresent(input.clientAccountId) ||
     isPresent(input.contactId) ||
@@ -322,12 +318,9 @@ function validateEftInput(
     );
   }
   const hasClientOrToken =
-    isPresent(input.clientAccountId) ||
-    isPresent(input.contactId) ||
-    hasConnectorToken(input);
+    isPresent(input.clientAccountId) || isPresent(input.contactId) || hasConnectorToken(input);
   const hasName =
-    (isPresent(input.firstName) && isPresent(input.lastName)) ||
-    isPresent(input.companyName);
+    (isPresent(input.firstName) && isPresent(input.lastName)) || isPresent(input.companyName);
   if (!hasClientOrToken && !hasName) {
     throw new Error(
       `VoPay ${name} requires either firstName+lastName or companyName when bank account details are provided`
@@ -532,9 +525,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
    */
   function buildEftResult(responseBody: Record<string, unknown>): VoPayFundResult {
     const flaggedReason =
-      typeof responseBody.Flagged === 'string'
-        ? responseBody.Flagged.trim() || null
-        : null;
+      typeof responseBody.Flagged === 'string' ? responseBody.Flagged.trim() || null : null;
     return {
       providerTransactionId: firstString(responseBody, ['TransactionID']),
       flagged: flaggedReason !== null,
@@ -598,9 +589,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
    * Boolean flags are stringified and included only when explicitly supplied,
    * so the provider receives `true`/`false` rather than `undefined`.
    */
-  function buildEmbedFields(
-    input: VoPayGenerateEmbedUrlInput
-  ): Record<string, string | undefined> {
+  function buildEmbedFields(input: VoPayGenerateEmbedUrlInput): Record<string, string | undefined> {
     const embedFields: Record<string, string | undefined> = {
       ClientAccountID: input.clientAccountId,
       RedirectURL: input.redirectUrl,
@@ -641,10 +630,7 @@ export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch =
   async function generateEmbedUrl(
     input: VoPayGenerateEmbedUrlInput = {}
   ): Promise<VoPayGenerateEmbedUrlResult> {
-    const { raw: responseBody } = await post(
-      'iq11/generate-embed-url',
-      buildEmbedFields(input)
-    );
+    const { raw: responseBody } = await post('iq11/generate-embed-url', buildEmbedFields(input));
 
     return {
       url: firstString(responseBody, ['EmbedURL']),

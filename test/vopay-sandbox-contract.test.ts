@@ -20,12 +20,7 @@ function makeRecordingFetch(): {
   const records: FetchRecord[] = [];
 
   const recordingFetch: typeof fetch = async (input, init) => {
-    const url =
-      typeof input === 'string'
-        ? input
-        : input instanceof URL
-          ? input.href
-          : input.url;
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const method = init?.method ?? 'GET';
     const headers: Record<string, string> = {};
     if (init?.headers) {
@@ -103,9 +98,7 @@ describe.skipIf(!isSandboxEnabled())('VoPay sandbox API contract', () => {
     expect(record).toBeDefined();
     expect(record.url).toBe(`${config.baseUrl}/api/v2/interac/money-request`);
     expect(record.method).toBe('POST');
-    expect(record.headers['content-type']).toBe(
-      'application/x-www-form-urlencoded'
-    );
+    expect(record.headers['content-type']).toBe('application/x-www-form-urlencoded');
 
     const form = parseForm(record);
     assertCommonSandboxFields(form, config);
@@ -136,9 +129,7 @@ describe.skipIf(!isSandboxEnabled())('VoPay sandbox API contract', () => {
       expect(form.get('Currency')).toBe('CAD');
       expect(form.get('EmailAddress')).toBe('tenant@sandbox.vopay.com');
       expect(form.get('RecipientName')).toBe('Sandbox Tenant');
-      expect(form.get('MessageForRecipient')).toBe(
-        `Contract test ${clientReferenceNumber}`
-      );
+      expect(form.get('MessageForRecipient')).toBe(`Contract test ${clientReferenceNumber}`);
       expect(form.get('ClientReferenceNumber')).toBe(clientReferenceNumber);
       expect(form.get('GenerateURL')).toBe('false');
       expect(result).toMatchObject({
@@ -300,7 +291,14 @@ describe.skipIf(!isSandboxEnabled())('VoPay sandbox API contract', () => {
   it('exposes every public client function in the contract suite', () => {
     const client: VoPayClient = createVoPayClient(config, fetch);
     const publicMethods = new Set(Object.keys(client));
-    for (const name of ['post', 'requestMoney', 'eftFund', 'eftWithdraw', 'createClientAccount', 'generateEmbedUrl']) {
+    for (const name of [
+      'post',
+      'requestMoney',
+      'eftFund',
+      'eftWithdraw',
+      'createClientAccount',
+      'generateEmbedUrl',
+    ]) {
       expect(publicMethods.has(name)).toBe(true);
     }
   });

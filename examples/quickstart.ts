@@ -31,10 +31,7 @@ console.log('client created:', typeof vopay.eftFund === 'function'); // true
 // 3. Webhook verification: VoPay sends ValidationKey = SHA1(sharedSecret + id).
 const recordId = 'example-transaction-id';
 const validationKey = voPaySha1(`sandbox-shared-secret${recordId}`);
-console.log(
-  'valid webhook:',
-  verifyVoPayWebhook(recordId, validationKey, 'sandbox-shared-secret'),
-); // true
+console.log('valid webhook:', verifyVoPayWebhook(recordId, validationKey, 'sandbox-shared-secret')); // true
 console.log('wrong secret:', verifyVoPayWebhook(recordId, validationKey, 'wrong-secret')); // false
 
 // Live calls (require network + sandbox credentials):
