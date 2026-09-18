@@ -708,6 +708,10 @@ pnpm install
 # Typecheck
 pnpm run typecheck    # tsc --noEmit
 
+# Lint and format check
+pnpm run lint         # eslint .
+pnpm run format:check # prettier --check
+
 # Run unit tests (no live calls)
 pnpm test             # vitest run
 
@@ -753,6 +757,9 @@ vopay-client/
 ├── tsconfig.build.json
 ├── vitest.config.ts
 ├── stryker.config.json
+├── eslint.config.mjs
+├── .prettierrc.json
+├── .prettierignore
 ├── LICENSE
 └── README.md
 ```
@@ -837,7 +844,8 @@ the production API. Before relying on endpoint specifics, **re-fetch the [live V
 
 1. Add or update tests for any change (Vitest unit tests; Stryker mutation tests for
    logic changes).
-2. Ensure `pnpm run typecheck` and `pnpm test` pass.
+2. Ensure `pnpm run typecheck`, `pnpm run lint`, `pnpm run format:check`, and
+   `pnpm test` pass.
 3. Do not commit secrets, `.env` files, or `dist/` output.
 4. Follow the existing code style (strict TypeScript, no `any`, functional client
    factory pattern).

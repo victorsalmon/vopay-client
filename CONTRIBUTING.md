@@ -14,6 +14,8 @@ Requires Node.js >= 22 (see `.nvmrc`).
 pnpm test              # vitest — unit tests, mocked fetch, no network calls
 pnpm test:property     # fast-check property tests
 pnpm run typecheck     # tsc --noEmit
+pnpm run lint          # eslint .
+pnpm run format:check  # prettier --check
 pnpm run build         # emit dist/ + declarations
 ```
 

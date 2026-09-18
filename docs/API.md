@@ -28,8 +28,9 @@ pnpm add @clocklobster/vopay-client
 
 Build from source: `npm run build` emits `dist/` via
 `tsc -p tsconfig.build.json`. Typecheck: `npm run typecheck`
-(`tsc --noEmit`). Tests: `npm test` (`vitest run`, no live calls without
-`VOPAY_SANDBOX_INTEGRATION=1`).
+(`tsc --noEmit`). Lint/format gates: `npm run lint` (`eslint .`) and
+`npm run format:check` (`prettier --check`). Tests: `npm test` (`vitest run`,
+no live calls without `VOPAY_SANDBOX_INTEGRATION=1`).
 
 ## Configuration
 
