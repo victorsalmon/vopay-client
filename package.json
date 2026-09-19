@@ -4,6 +4,7 @@
     "access": "public"
   },
   "version": "1.0.0",
+  "packageManager": "pnpm@11.7.0",
   "description": "Product-neutral VoPay payment client (Interac money requests, EFT, webhooks, signature verification)",
   "license": "MIT",
   "author": "Victor Salmon",
