@@ -97,6 +97,33 @@ describe('VoPay configuration', () => {
   });
 });
 
+describe('VoPay base URL transport security', () => {
+  const config = (baseUrl: string) => ({
+    baseUrl,
+    accountId: 'account-1',
+    apiKey: 'api-key-1',
+    sharedSecret: 'shared-1',
+  });
+
+  it('accepts https base URLs', () => {
+    expect(() => createVoPayClient(config('https://api.vopay.test'))).not.toThrow();
+  });
+
+  it('rejects cleartext http base URLs for non-loopback hosts', () => {
+    expect(() => createVoPayClient(config('http://api.vopay.test'))).toThrow(/https:\/\//);
+    expect(() => createVoPayClient(config('ftp://api.vopay.test'))).toThrow(/https:\/\//);
+  });
+
+  it('allows http only for loopback hosts', () => {
+    expect(() => createVoPayClient(config('http://localhost:8080'))).not.toThrow();
+    expect(() => createVoPayClient(config('http://127.0.0.1:8080'))).not.toThrow();
+  });
+
+  it('rejects a base URL that is not parseable', () => {
+    expect(() => createVoPayClient(config('api.vopay.test'))).toThrow(/not a valid URL/);
+  });
+});
+
 describe('getVoPayWebhookValue / firstString', () => {
   it('picks the first non-empty string value from the supplied keys', () => {
     expect(getVoPayWebhookValue({ a: 'one', b: 'two' }, ['b', 'a'])).toBe('two');

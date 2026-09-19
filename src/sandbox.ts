@@ -1,17 +1,24 @@
+import { randomBytes } from 'node:crypto';
 import { createVoPayConfigFromEnv } from './config.js';
 import type { VoPayConfig } from './config.js';
 import { isProviderErrorStatus } from './util.js';
 export { isProviderErrorStatus };
+
+/** Explicit opt-out values; any other non-empty value enables integration. */
+const SANDBOX_DISABLED_VALUES = new Set(['0', 'false', 'off', 'no']);
 
 /**
  * Whether sandbox integration tests should run.
  *
  * Tests and scripts gate on this flag so a normal `npm test` never reaches
  * the live VoPay sandbox. Set `VOPAY_SANDBOX_INTEGRATION=1` and supply the
- * three `VOPAY_*` credential variables to enable real calls.
+ * three `VOPAY_*` credential variables to enable real calls. Explicit off
+ * values (`0`, `false`, `off`, `no`, case-insensitive) keep the gate closed,
+ * so a disabled-looking flag can never enable live network calls.
  */
 export function isSandboxEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return !!env.VOPAY_SANDBOX_INTEGRATION;
+  const value = env.VOPAY_SANDBOX_INTEGRATION?.trim().toLowerCase();
+  return !!value && !SANDBOX_DISABLED_VALUES.has(value);
 }
 
 /** Credential environment variables required for any real sandbox call. */
@@ -44,17 +51,16 @@ export function requireSandboxCredentials(env: NodeJS.ProcessEnv = process.env):
 /**
  * Generate a unique client reference number or idempotency key for sandbox
  * calls. Uniqueness avoids collisions and duplicate-key rejections on retries.
+ *
+ * The random suffix comes from `node:crypto` (not `Math.random()`), because
+ * these values are also recommended as idempotency keys, which must not be
+ * guessable or predictable.
  */
 export function uniqueClientReference(prefix = 'vopay-sandbox'): string {
-  // Math.random() returns `0.xxxxx...`; `toString(36)` renders it as a short
-  // base-36 string starting with `0.`. We skip those two characters and keep a
-  // fixed-length suffix so the reference stays readable and URL-safe.
-  const RANDOM_STRING_RADIX = 36;
-  const RANDOM_PREFIX_SKIP = 2;
-  const RANDOM_SUFFIX_LENGTH = 6;
-  const randomSuffix = Math.random()
-    .toString(RANDOM_STRING_RADIX)
-    .slice(RANDOM_PREFIX_SKIP, RANDOM_PREFIX_SKIP + RANDOM_SUFFIX_LENGTH);
+  // Three random bytes render as six lowercase hex characters, preserving the
+  // documented `prefix-<timestamp>-<6 chars>` shape while upgrading the source
+  // of randomness from `Math.random()` to a CSPRNG.
+  const randomSuffix = randomBytes(3).toString('hex');
   return `${prefix}-${Date.now()}-${randomSuffix}`;
 }
 

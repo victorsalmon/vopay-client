@@ -249,11 +249,17 @@ describe('sandbox helpers — property tests', () => {
     fc.string({ maxLength: 5 })
   );
 
-  it('isSandboxEnabled is the boolean coercion of VOPAY_SANDBOX_INTEGRATION', () => {
+  // Mirrors src/sandbox.ts: explicit off values keep the gate closed.
+  const sandboxEnabled = (flag: string | undefined): boolean => {
+    const value = flag?.trim().toLowerCase();
+    return !!value && !['0', 'false', 'off', 'no'].includes(value);
+  };
+
+  it('isSandboxEnabled is false for absent/off values and true otherwise', () => {
     fc.assert(
       fc.property(flagArb, (flag) => {
         const env = flag === undefined ? {} : { VOPAY_SANDBOX_INTEGRATION: flag };
-        expect(isSandboxEnabled(env)).toBe(!!flag);
+        expect(isSandboxEnabled(env)).toBe(sandboxEnabled(flag));
       })
     );
   });
@@ -282,7 +288,7 @@ describe('sandbox helpers — property tests', () => {
 
   it('requireSandboxCredentials matches the modelled contract', () => {
     const model = (env: Record<string, string | undefined>) => {
-      if (!env.VOPAY_SANDBOX_INTEGRATION) {
+      if (!sandboxEnabled(env.VOPAY_SANDBOX_INTEGRATION)) {
         throw new Error('VOPAY_SANDBOX_INTEGRATION is not set');
       }
       const missing = ['VOPAY_ACCOUNT_ID', 'VOPAY_API_KEY', 'VOPAY_SHARED_SECRET'].filter(

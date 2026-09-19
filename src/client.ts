@@ -1,4 +1,5 @@
 import { firstString, isProviderErrorStatus, sha1, todayUtc } from './util.js';
+import { assertSecureBaseUrl } from './config.js';
 import type { VoPayConfig } from './config.js';
 
 export interface VoPayMoneyRequestInput {
@@ -365,6 +366,8 @@ function validateClientAccountInput(input: VoPayClientAccountInput): void {
  * consuming application.
  */
 export function createVoPayClient(config: VoPayConfig, fetchImpl: typeof fetch = fetch) {
+  assertSecureBaseUrl(config.baseUrl);
+
   /**
    * POST `requestFields` to a VoPay `/api/v2/{endpoint}` path.
    *
