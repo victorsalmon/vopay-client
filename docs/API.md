@@ -48,7 +48,9 @@ import {
 `VoPay is enabled but <NAME> is missing` when the key is set but
 `VOPAY_ACCOUNT_ID` or `VOPAY_SHARED_SECRET` is missing. `VOPAY_BASE_URL`
 overrides the base URL (trailing slash stripped). `createVoPayClient(config,
-fetchImpl = fetch)` accepts an injectable `fetch` for tests.
+fetchImpl = fetch)` accepts an injectable `fetch` for tests and rejects a
+non-HTTPS `baseUrl` (loopback `http://` is allowed for local test servers) so
+credentials are never posted over cleartext.
 
 ```typescript
 interface VoPayConfig {
@@ -161,11 +163,12 @@ import {
 } from '@clocklobster/vopay-client/sandbox';
 ```
 
-`isSandboxEnabled()` is true when `VOPAY_SANDBOX_INTEGRATION` is set;
+`isSandboxEnabled()` is true when `VOPAY_SANDBOX_INTEGRATION` is a non-empty,
+non-off value (`0`, `false`, `off`, `no` are treated as disabled);
 `requireSandboxCredentials()` throws unless integration is enabled and
 `VOPAY_ACCOUNT_ID`/`VOPAY_API_KEY`/`VOPAY_SHARED_SECRET` are non-empty;
 `uniqueClientReference(prefix = 'vopay-sandbox')` returns
-`prefix-<Date.now()>-<6-char base36>`; `isAuthOrSignatureRejection(response,
+`prefix-<Date.now()>-<6-char hex>` with a CSPRNG-backed suffix; `isAuthOrSignatureRejection(response,
 bodyText)` is true on 401/403 or an auth/allowlist/signature/IP pattern (not
 on 5xx or business validation errors); `isProviderErrorStatus(raw)` detects
 `error`/`failed`/`failure`/`declined`.

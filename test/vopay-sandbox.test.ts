@@ -168,11 +168,15 @@ describe.skipIf(!isSandboxEnabled())('VoPay sandbox — remaining core endpoints
 });
 
 describe('sandbox helpers (no env required)', () => {
-  it('reports sandbox enabled only when VOPAY_SANDBOX_INTEGRATION is truthy', () => {
+  it('reports sandbox enabled only when VOPAY_SANDBOX_INTEGRATION is a non-off value', () => {
     expect(isSandboxEnabled({})).toBe(false);
     expect(isSandboxEnabled({ VOPAY_SANDBOX_INTEGRATION: '' })).toBe(false);
-    expect(isSandboxEnabled({ VOPAY_SANDBOX_INTEGRATION: '0' })).toBe(true);
+    expect(isSandboxEnabled({ VOPAY_SANDBOX_INTEGRATION: '0' })).toBe(false);
+    expect(isSandboxEnabled({ VOPAY_SANDBOX_INTEGRATION: 'false' })).toBe(false);
+    expect(isSandboxEnabled({ VOPAY_SANDBOX_INTEGRATION: 'OFF' })).toBe(false);
+    expect(isSandboxEnabled({ VOPAY_SANDBOX_INTEGRATION: 'no' })).toBe(false);
     expect(isSandboxEnabled({ VOPAY_SANDBOX_INTEGRATION: '1' })).toBe(true);
+    expect(isSandboxEnabled({ VOPAY_SANDBOX_INTEGRATION: 'true' })).toBe(true);
   });
 
   it('throws when sandbox is disabled', () => {

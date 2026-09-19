@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   format:check`). The `typescript` devDependency now aliases
   `@typescript/typescript6` so typescript-eslint keeps a programmatic API
   while `tsc` stays TypeScript 7 via the `@typescript/native` alias.
+- Dev-dependency refresh: `prettier` `3.9.8`, `@types/node` `26.6.2`, and
+  `fast-check` `4.10.2`.
 
 ### Removed
 
@@ -46,8 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Pending audit-plan fixes (by reference, unreleased): sandbox helper
-  correctness and transport hardening.
+- `isSandboxEnabled()` treats explicit off values (`0`, `false`, `off`, `no`,
+  case-insensitive) as disabled instead of enabling live sandbox calls on any
+  non-empty value.
+
+### Security
+
+- `createVoPayClient()` rejects non-HTTPS `baseUrl` values (loopback `http://`
+  stays allowed for local test servers) so `VOPAY_API_KEY` and
+  `VOPAY_SHARED_SECRET` are never posted over cleartext.
+- `uniqueClientReference()` derives its random suffix from `node:crypto`
+  rather than `Math.random()`, since it is recommended for idempotency keys.
+- Forced patched transitive releases `fast-uri` (`>=3.1.6`) and `qs`
+  (`>=6.16.0`) through pnpm overrides, clearing dev-only advisories from the
+  mutation-testing toolchain.
 
 ## [1.0.0] - 2025-01-15
 

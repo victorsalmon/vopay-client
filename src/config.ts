@@ -7,6 +7,28 @@ export interface VoPayConfig {
 
 const DEFAULT_BASE_URL = 'https://earthnode-dev.vopay.com';
 
+/** Hosts for which cleartext `http://` is tolerated (local test servers). */
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * Fail fast when `baseUrl` would send `apiKey`/`sharedSecret` over cleartext.
+ *
+ * HTTPS is required; `http://` is allowed only for loopback hosts so local
+ * test servers keep working. The check lives on the client factory as well so
+ * programmatic configs (which bypass `createVoPayConfigFromEnv`) are covered.
+ */
+export function assertSecureBaseUrl(baseUrl: string): void {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new Error(`VoPay baseUrl is not a valid URL: ${baseUrl}`);
+  }
+  if (url.protocol === 'https:') return;
+  if (url.protocol === 'http:' && LOOPBACK_HOSTS.has(url.hostname)) return;
+  throw new Error('VoPay baseUrl must use https:// (http:// is allowed only for loopback hosts)');
+}
+
 function required(env: NodeJS.ProcessEnv, name: string): string {
   const value = env[name]?.trim();
   if (!value) throw new Error(`VoPay is enabled but ${name} is missing`);

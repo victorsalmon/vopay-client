@@ -54,6 +54,8 @@ All transaction endpoints take an `IdempotencyKey`; a duplicate key is **rejecte
 ## Secrets & red lines
 - Store `VOPAY_API_KEY` + `VOPAY_SHARED_SECRET` in a secrets manager (e.g. AWS Secrets Manager,
   Vault, Doppler); inject at runtime. **Never** hardcode, log, commit, or print them.
+- The client refuses a non-HTTPS `baseUrl` (`http://` is allowed only for loopback hosts), so
+  credentials are never posted over cleartext.
 - Sandbox keys first; promote to production only after the integration + IP allowlist are verified.
 - Do **not** write secret values to a local `.env` file; if you create one for a one-off test,
   delete it immediately after.

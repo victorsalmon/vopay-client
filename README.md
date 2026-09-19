@@ -214,7 +214,7 @@ console.log(embed.iframeKey);
 | `VOPAY_API_KEY` | yes | — | VoPay API key. When absent, `createVoPayConfigFromEnv()` returns `null` (integration disabled). |
 | `VOPAY_ACCOUNT_ID` | yes* | — | VoPay account ID. Required when `VOPAY_API_KEY` is set. |
 | `VOPAY_SHARED_SECRET` | yes* | — | Shared secret used in the request signature. Required when `VOPAY_API_KEY` is set. |
-| `VOPAY_BASE_URL` | no | `https://earthnode-dev.vopay.com` | Override the base URL (e.g. for production). Trailing slash is stripped. |
+| `VOPAY_BASE_URL` | no | `https://earthnode-dev.vopay.com` | Override the base URL (e.g. for production). Trailing slash is stripped. Must use `https://`; `http://` is accepted only for loopback hosts (local test servers). |
 | `VOPAY_SANDBOX_INTEGRATION` | no | — | Set to `1` to enable live sandbox integration tests (see [Sandbox testing](#sandbox-testing)). |
 
 \* Required only when `VOPAY_API_KEY` is present. If any of these is missing while
@@ -545,9 +545,9 @@ import {
 
 | Function | Description |
 |---|---|
-| `isSandboxEnabled(env?)` | Returns `true` when `VOPAY_SANDBOX_INTEGRATION=1`. |
-| `requireSandboxCredentials(env?)` | Loads sandbox creds from env; throws if `VOPAY_SANDBOX_INTEGRATION` is unset or any cred is missing. |
-| `uniqueClientReference(prefix?)` | Generates a unique `prefix-<timestamp>-<random>` string for sandbox client reference numbers / idempotency keys. |
+| `isSandboxEnabled(env?)` | Returns `true` when `VOPAY_SANDBOX_INTEGRATION` is a non-empty, non-off value (`1`, `true`, …). Explicit off values (`0`, `false`, `off`, `no`) keep the gate closed. |
+| `requireSandboxCredentials(env?)` | Loads sandbox creds from env; throws if `VOPAY_SANDBOX_INTEGRATION` is unset/off or any cred is missing. |
+| `uniqueClientReference(prefix?)` | Generates a unique `prefix-<timestamp>-<random>` string (CSPRNG-backed suffix) for sandbox client reference numbers / idempotency keys. |
 | `isAuthOrSignatureRejection(response, bodyText)` | Heuristic for failures indicating incomplete sandbox onboarding (wrong creds, bad signature, IP not allowlisted). Returns `false` for business validation errors. |
 | `isProviderErrorStatus(raw)` | Detects a provider-declared `error`/`failed`/`failure`/`declined` status in a parsed JSON response. |
 
@@ -818,6 +818,10 @@ by field.
 
 - **Never** hardcode, log, commit, or print `VOPAY_API_KEY` or `VOPAY_SHARED_SECRET`.
   Load them from a secrets manager at runtime.
+- **Transport is HTTPS-only.** `createVoPayClient()` rejects a `baseUrl` that is not
+  `https://` (loopback `http://` stays allowed for local test servers), so credentials
+  are never posted over cleartext. A non-HTTPS `VOPAY_BASE_URL` fails fast before the
+  first request.
 - **Always** verify webhook signatures with `verifyVoPayWebhook()` before trusting a
   webhook payload for money state. The verification uses `timingSafeEqual` to prevent
   timing attacks.
