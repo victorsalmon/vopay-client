@@ -1,2 +1,13 @@
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@types/node@26.6.2'
+  - fast-check@4.10.2
+
+# Force patched transitive releases pulled in by the mutation-testing
+# toolchain (dev-only): fast-uri via @stryker-mutator/core > ajv, and qs via
+# @stryker-mutator/core > typed-rest-client.
+overrides:
+  fast-uri: ^3.1.6
+  qs: ^6.16.0
