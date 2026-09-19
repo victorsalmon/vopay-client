@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an `audit` script (`pnpm audit --prod`).
 - CI dependency-audit gate (`pnpm audit --prod`) failing on HIGH-or-worse
   production advisories.
+- Corepack pin `"packageManager": "pnpm@11.7.0"` in `package.json`, matching the
+  `pnpm/action-setup` `version: 11` used in CI so local and CI pnpm resolution
+  is explicit.
 
 ### Changed
 
@@ -39,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   while `tsc` stays TypeScript 7 via the `@typescript/native` alias.
 - Dev-dependency refresh: `prettier` `3.9.8`, `@types/node` `26.6.2`, and
   `fast-check` `4.10.2`.
+- CI actions bumped to current stable majors: `actions/checkout` `v7.0.1`,
+  `actions/setup-node` `v7.0.0`, and `pnpm/action-setup` `v6.1.0`, retaining
+  `node-version-file: '.nvmrc'`, `cache: 'pnpm'`, and `version: 11`.
+- `vitest` remains pinned at `^4.1` (not upgraded to 5.x) until
+  `@stryker-mutator/vitest-runner` supports vitest 5.
 
 ### Removed
 
