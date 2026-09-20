@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are listed under `Security` and `Fixed`.
 - Added lint/format gates wired into CI: ESLint (flat config, `@eslint/js` +
   typescript-eslint recommended, `pnpm lint`) and Prettier (`pnpm
-  format:check`). The `typescript` devDependency now aliases
+format:check`). The `typescript` devDependency now aliases
   `@typescript/typescript6` so typescript-eslint keeps a programmatic API
   while `tsc` stays TypeScript 7 via the `@typescript/native` alias.
 - Dev-dependency refresh: `prettier` `3.9.8`, `@types/node` `26.6.2`, and
@@ -49,6 +49,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `node-version-file: '.nvmrc'`, `cache: 'pnpm'`, and `version: 11`.
 - `vitest` remains pinned at `^4.1` (not upgraded to 5.x) until
   `@stryker-mutator/vitest-runner` supports vitest 5.
+- Widened the Prettier gate (`pnpm format` / `pnpm format:check`) from
+  `src`/`test`/`examples` to the whole repository, so markdown, JSON, YAML
+  (including `.github/workflows/ci.yml`), and `.mjs` are gated; the
+  pnpm-generated `pnpm-lock.yaml` is excluded in `.prettierignore`. The
+  previously ungated `CHANGELOG.md`, `README.md`, `docs/API.md`,
+  `docs/REFERENCE.md`, `docs/SKILL.md`, and `eslint.config.mjs` were
+  reformatted.
 
 ### Removed
 
@@ -61,6 +68,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `isSandboxEnabled()` treats explicit off values (`0`, `false`, `off`, `no`,
   case-insensitive) as disabled instead of enabling live sandbox calls on any
   non-empty value.
+- README no longer duplicates `docs/API.md` and `docs/REFERENCE.md`: the
+  per-export API reference and the VoPay validation table are replaced by
+  pointers to those owners, and the `docs/`/`examples/` links use absolute
+  GitHub URLs so they resolve from the npm package page (they were dead
+  relative links, since `files` ships only `dist`, `README.md`, `LICENSE`, and
+  `CHANGELOG.md`).
 
 ### Security
 

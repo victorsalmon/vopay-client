@@ -76,14 +76,14 @@ fields are omitted. Non-2xx throws `VoPay <endpoint> failed with HTTP
 `declined` throws `VoPay <endpoint> rejected`. Amounts are input in integer
 cents and sent as two-decimal dollar strings (`(cents / 100).toFixed(2)`).
 
-| Method | Endpoint | Input type | Result type |
-|---|---|---|---|
-| `post(endpoint, fields, idempotencyKey?)` | any `/api/v2/*` | `Record<string, string \| undefined>` | `{ raw }` |
-| `eftFund(input)` | `eft/fund` | `VoPayFundInput` | `VoPayFundResult` |
-| `eftWithdraw(input)` | `eft/withdraw` | `VoPayWithdrawInput` | `VoPayWithdrawResult` |
-| `requestMoney(input)` | `interac/money-request` | `VoPayMoneyRequestInput` | `VoPayMoneyRequestResult` |
-| `createClientAccount(input)` | `account/client-accounts/individual` | `VoPayClientAccountInput` | `VoPayClientAccountResult` |
-| `generateEmbedUrl(input = {})` | `iq11/generate-embed-url` | `VoPayGenerateEmbedUrlInput` | `VoPayGenerateEmbedUrlResult` |
+| Method                                    | Endpoint                             | Input type                            | Result type                   |
+| ----------------------------------------- | ------------------------------------ | ------------------------------------- | ----------------------------- |
+| `post(endpoint, fields, idempotencyKey?)` | any `/api/v2/*`                      | `Record<string, string \| undefined>` | `{ raw }`                     |
+| `eftFund(input)`                          | `eft/fund`                           | `VoPayFundInput`                      | `VoPayFundResult`             |
+| `eftWithdraw(input)`                      | `eft/withdraw`                       | `VoPayWithdrawInput`                  | `VoPayWithdrawResult`         |
+| `requestMoney(input)`                     | `interac/money-request`              | `VoPayMoneyRequestInput`              | `VoPayMoneyRequestResult`     |
+| `createClientAccount(input)`              | `account/client-accounts/individual` | `VoPayClientAccountInput`             | `VoPayClientAccountResult`    |
+| `generateEmbedUrl(input = {})`            | `iq11/generate-embed-url`            | `VoPayGenerateEmbedUrlInput`          | `VoPayGenerateEmbedUrlResult` |
 
 ### EFT fund / withdraw
 

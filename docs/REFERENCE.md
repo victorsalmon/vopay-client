@@ -18,12 +18,13 @@ software platforms to move money without building the rails themselves.
 4. **Glossary / FAQ** — payment lingo + common questions.
 
 ### Most common workflows (entry-point endpoints)
-| Workflow | Endpoint | Use |
-|---|---|---|
-| Send funds (EFT, Canada) | `eft/withdraw` | Pay out using customer bank details or a Token |
-| Collect funds (EFT, Canada) | `eft/fund` | Pull funds from a Canadian bank account (Token or banking details) |
-| Segregate / hold funds | `account/client-accounts/individual` | Virtual ledger entity — for platforms & subscription services |
-| Embedded bank-connect iFrame | `iq11/generate-embed-url` | Generate a URL that lets a user connect their bank account and returns a Token to you |
+
+| Workflow                     | Endpoint                             | Use                                                                                   |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
+| Send funds (EFT, Canada)     | `eft/withdraw`                       | Pay out using customer bank details or a Token                                        |
+| Collect funds (EFT, Canada)  | `eft/fund`                           | Pull funds from a Canadian bank account (Token or banking details)                    |
+| Segregate / hold funds       | `account/client-accounts/individual` | Virtual ledger entity — for platforms & subscription services                         |
+| Embedded bank-connect iFrame | `iq11/generate-embed-url`            | Generate a URL that lets a user connect their bank account and returns a Token to you |
 
 ---
 
@@ -43,18 +44,23 @@ Every request must include the **API key** and a **Signature** parameter. The si
 **SHA1 hash** of `APIkey + SharedSecret + Date` where Date is the current date in `YYYY-MM-DD`.
 
 > Example credentials from the docs (NOT real — illustrative):
+>
 > - API Key: `3da541559918a808c2402bba5012f6c60b27661c`
 > - Shared Secret: `OTEyZWM4MDNiMmNlNDk=`
 
 ### Signature generation
 
 **Node.js / TypeScript:**
+
 ```js
 const crypto = require('crypto');
 const key = '3da541559918a808c2402bba5012f6c60b27661c';
 const secret = 'OTEyZWM4MDNiMmNlNDk=';
 const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD (UTC)
-const signature = crypto.createHash('sha1').update(key + secret + date).digest('hex');
+const signature = crypto
+  .createHash('sha1')
+  .update(key + secret + date)
+  .digest('hex');
 ```
 
 > ⚠️ **Date/timezone:** the docs example uses "current date" without pinning a timezone.
@@ -62,6 +68,7 @@ const signature = crypto.createHash('sha1').update(key + secret + date).digest('
 > a date mismatch is the #1 signature failure. Pin the timezone deliberately and test it.
 
 **PHP:**
+
 ```php
 $key = "3da541559918a808c2402bba5012f6c60b27661c";
 $secret = "OTEyZWM4MDNiMmNlNDk=";
@@ -70,6 +77,7 @@ $signature = sha1($key . $secret . $date);
 ```
 
 **C# (.NET):**
+
 ```csharp
 string key = "3da541559918a808c2402bba5012f6c60b27661c";
 string secret = "OTEyZWM4MDNiMmNlNDk=";
@@ -89,7 +97,7 @@ All transaction endpoints support idempotency for safe retries.
 - Pass an **`IdempotencyKey`** in the POST body.
 - VoPay stores the key on the transaction record; a second request with the same key is
   **rejected with an error** (asking the caller to retry with a different key).
-- Use case: a network error mid-`eft/fund` — the caller must retry with a *new* key; the original request must be reconciled separately because VoPay rejects duplicate keys.
+- Use case: a network error mid-`eft/fund` — the caller must retry with a _new_ key; the original request must be reconciled separately because VoPay rejects duplicate keys.
 
 > Note the model: it's **reject-on-duplicate**, not "return the original result." The caller
 > must generate a new key to retry, and reconcile the original separately if it actually succeeded.
@@ -98,45 +106,46 @@ All transaction endpoints support idempotency for safe retries.
 
 ## 5. Input validations (enforced on every API)
 
-| Field | Rule |
-|---|---|
-| Province | valid 2-letter Canadian provincial/territorial code |
-| State | valid 2-letter US state alpha code |
-| Country | ISO 3166-1 alpha-2 (2 letters) |
-| Financial Institution Number | 3-digit integer (the 3-digit bank number) |
-| Branch Transit Number | 5-digit integer |
-| Bank Account Number | integer, max 160 digits |
-| IDs (Shareholder/Tx/Account…) | integer |
-| Currency | ISO-4217 (3 letters) |
-| Address / City | max 150 chars (allowed-char table below) |
-| Postal Code | `A9A 9A9` format |
-| Zip Code | 5-digit integer |
-| IP Address | `x.x.x.x`, octets 0–255 |
-| URL | W3C-valid, max 1024 chars |
-| First/Last Name | max 100 chars |
-| Business Name | max 255 chars |
-| Email | RFC `local-part@domain`, max 145 chars |
-| Phone Number | integer, 6–11 digits |
-| Amount | positive, non-zero numeric |
-| Date | `YYYY-MM-DD` |
-| Timestamp | `YYYY-MM-DD HH:MM:SS` |
-| Language | `EN` or `FR` (case-insensitive) |
-| Question | max 40 chars, no `,` or `&` |
-| Answer | max 64 chars, no `,` or `&` |
+| Field                         | Rule                                                |
+| ----------------------------- | --------------------------------------------------- |
+| Province                      | valid 2-letter Canadian provincial/territorial code |
+| State                         | valid 2-letter US state alpha code                  |
+| Country                       | ISO 3166-1 alpha-2 (2 letters)                      |
+| Financial Institution Number  | 3-digit integer (the 3-digit bank number)           |
+| Branch Transit Number         | 5-digit integer                                     |
+| Bank Account Number           | integer, max 160 digits                             |
+| IDs (Shareholder/Tx/Account…) | integer                                             |
+| Currency                      | ISO-4217 (3 letters)                                |
+| Address / City                | max 150 chars (allowed-char table below)            |
+| Postal Code                   | `A9A 9A9` format                                    |
+| Zip Code                      | 5-digit integer                                     |
+| IP Address                    | `x.x.x.x`, octets 0–255                             |
+| URL                           | W3C-valid, max 1024 chars                           |
+| First/Last Name               | max 100 chars                                       |
+| Business Name                 | max 255 chars                                       |
+| Email                         | RFC `local-part@domain`, max 145 chars              |
+| Phone Number                  | integer, 6–11 digits                                |
+| Amount                        | positive, non-zero numeric                          |
+| Date                          | `YYYY-MM-DD`                                        |
+| Timestamp                     | `YYYY-MM-DD HH:MM:SS`                               |
+| Language                      | `EN` or `FR` (case-insensitive)                     |
+| Question                      | max 40 chars, no `,` or `&`                         |
+| Answer                        | max 64 chars, no `,` or `&`                         |
 
 ### Allowed characters by field
-| Char | Address | City | Email | Names | Business |
-|---|---|---|---|---|---|
-| `a-z A-Z` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `0-9` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `'` `-` `.` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `,` | ✓ | ✗ | ✗ | ✓ | ✓ |
-| `&` | ✗ | ✗ | ✗ | ✓ | ✓ |
-| `! # + ? |` | ✗ | ✗ | ✓ | ✗ | ✗ |
-| `_ /` | ✓ | ✗ | ✓ | ✓ | ✗ |
-| `$ *` | ✗ | ✗ | ✗ | ✓ (`$` only) | ✗ |
-| `( )` | ✓ | ✗ | ✗ | ✓ | ✗ |
-| `: ` (space) | ✓ | ✓ | ✗ | ✓ | ✓ |
+
+| Char         | Address | City | Email | Names        | Business |
+| ------------ | ------- | ---- | ----- | ------------ | -------- |
+| `a-z A-Z`    | ✓       | ✓    | ✓     | ✓            | ✓        |
+| `0-9`        | ✓       | ✓    | ✓     | ✓            | ✓        |
+| `'` `-` `.`  | ✓       | ✓    | ✓     | ✓            | ✓        |
+| `,`          | ✓       | ✗    | ✗     | ✓            | ✓        |
+| `&`          | ✗       | ✗    | ✗     | ✓            | ✓        |
+| `! # + ?     | `       | ✗    | ✗     | ✓            | ✗        | ✗   |
+| `_ /`        | ✓       | ✗    | ✓     | ✓            | ✗        |
+| `$ *`        | ✗       | ✗    | ✗     | ✓ (`$` only) | ✗        |
+| `( )`        | ✓       | ✗    | ✗     | ✓            | ✗        |
+| `: ` (space) | ✓       | ✓    | ✗     | ✓            | ✓        |
 
 > Full canonical table is in the live api-overview page — re-fetch if you need every cell.
 
@@ -156,11 +165,14 @@ All transaction endpoints support idempotency for safe retries.
   always validate before trusting a webhook for money state.
 
 ## 7. Endpoint reference
+
 The following core flows are implemented in `src/client.ts`:
+
 - `eft/fund`, `eft/withdraw` — Canadian EFT collect / send
 - `account/client-accounts/individual` — segregated virtual ledger
 - `iq11/generate-embed-url` — iFrame bank-connect → Token
 
 Remaining flows to add as needed:
+
 - card / Interac / pre-authorized debit variants
 - webhook event retrieval (signature verification is implemented)

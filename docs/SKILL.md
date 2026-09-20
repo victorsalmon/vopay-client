@@ -16,17 +16,20 @@ triggers:
 # VoPay — payment-integration skill
 
 ## Purpose
+
 Reference for integrating VoPay (a Canadian payment processor offering EFT, bank-to-bank,
 and card payments). Full API detail, the saved getting-started + api-overview guide, and
 the integration gotchas live in `REFERENCE.md` (this folder). **Code wins over this doc** —
 re-fetch the live docs when endpoint specifics matter.
 
 ## When to use
+
 - Building VoPay EFT fund/withdraw, client-account, or iFrame bank-connect flows.
 - Debugging a `401` / signature failure (almost always the date timezone or a stale secret).
 - Replacing another billing surface with VoPay.
 
 ## The auth model (the part that bites)
+
 Every request is **HTTP POST form-encoded → JSON**, and carries `APIkey` + `Signature` where:
 
 ```
@@ -40,18 +43,21 @@ Signature = sha1( APIkey + SharedSecret + Date )    // Date = YYYY-MM-DD
 - Code samples (Node/PHP/C#) and the full input-validation table are in `REFERENCE.md` §3–5.
 
 ## Core endpoints (entry points)
-| Flow | Endpoint | Use |
-|---|---|---|
-| Collect (EFT CA) | `eft/fund` | pull from a Canadian bank account |
-| Send (EFT CA) | `eft/withdraw` | pay out to bank details or a Token |
-| Segregated ledger | `account/client-accounts/individual` | virtual ledger for platforms/subscriptions |
-| Bank-connect iFrame | `iq11/generate-embed-url` | user connects bank → returns a Token |
+
+| Flow                | Endpoint                             | Use                                        |
+| ------------------- | ------------------------------------ | ------------------------------------------ |
+| Collect (EFT CA)    | `eft/fund`                           | pull from a Canadian bank account          |
+| Send (EFT CA)       | `eft/withdraw`                       | pay out to bank details or a Token         |
+| Segregated ledger   | `account/client-accounts/individual` | virtual ledger for platforms/subscriptions |
+| Bank-connect iFrame | `iq11/generate-embed-url`            | user connects bank → returns a Token       |
 
 ## Idempotency
+
 All transaction endpoints take an `IdempotencyKey`; a duplicate key is **rejected** (not
-"return original"). Retry with a *new* key and reconcile the original separately.
+"return original"). Retry with a _new_ key and reconcile the original separately.
 
 ## Secrets & red lines
+
 - Store `VOPAY_API_KEY` + `VOPAY_SHARED_SECRET` in a secrets manager (e.g. AWS Secrets Manager,
   Vault, Doppler); inject at runtime. **Never** hardcode, log, commit, or print them.
 - The client refuses a non-HTTPS `baseUrl` (`http://` is allowed only for loopback hosts), so
@@ -63,5 +69,6 @@ All transaction endpoints take an `IdempotencyKey`; a duplicate key is **rejecte
   validate the `ValidationKey` before trusting a webhook payload for money state.
 
 ## Pointers
+
 - Detailed guide + validation tables: `REFERENCE.md` (this folder).
 - Live docs: `https://docs.vopay.com/docs/getting-started` + `/docs/api-overview`.

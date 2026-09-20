@@ -29,15 +29,6 @@ and webhook signature verification.
 - [Configuration](#configuration)
 - [Auth model](#auth-model-the-part-that-bites)
 - [API reference](#api-reference)
-  - [`createVoPayClient(config, fetchImpl?)`](#createvopayclientconfig-fetchimpl)
-  - [`createVoPayConfigFromEnv(env?)`](#createvopayconfigfromenvenv)
-  - [EFT fund — `eftFund(input)`](#eft-fund--eftfundinput)
-  - [EFT withdraw — `eftWithdraw(input)`](#eft-withdraw--eftwithdrawinput)
-  - [Interac money request — `requestMoney(input)`](#interac-money-request--requestmoneyinput)
-  - [Client account — `createClientAccount(input)`](#client-account--createclientaccountinput)
-  - [Embed URL — `generateEmbedUrl(input?)`](#embed-url--generateembedurlinput)
-  - [Webhook verification — `verifyVoPayWebhook(...)`](#webhook-verification--verifyvopaywebhook)
-  - [Sandbox helpers](#sandbox-helpers)
 - [Error handling](#error-handling)
 - [Idempotency](#idempotency)
 - [Webhooks](#webhooks)
@@ -119,11 +110,12 @@ yarn add @clocklobster/vopay-client
 
 Runs offline as documented: config from env with synthetic values plus webhook
 verification needs no credentials and no network. Runnable scripts live in
-[`examples/quickstart.ts`](examples/quickstart.ts) (config + webhook verify),
-[`examples/eft-fund-withdraw.ts`](examples/eft-fund-withdraw.ts) (EFT fund/withdraw
-with a mocked fetch), and
-[`examples/interac-request.ts`](examples/interac-request.ts) (Interac request with a
-mocked fetch) — e.g. `npx tsx examples/quickstart.ts`. Live calls need sandbox
+[`examples/quickstart.ts`](https://github.com/victorsalmon/vopay-client/blob/main/examples/quickstart.ts)
+(config + webhook verify),
+[`examples/eft-fund-withdraw.ts`](https://github.com/victorsalmon/vopay-client/blob/main/examples/eft-fund-withdraw.ts)
+(EFT fund/withdraw with a mocked fetch), and
+[`examples/interac-request.ts`](https://github.com/victorsalmon/vopay-client/blob/main/examples/interac-request.ts)
+(Interac request with a mocked fetch) — e.g. `npx tsx examples/quickstart.ts`. Live calls need sandbox
 credentials and an allowlisted egress IP (see [Sandbox testing](#sandbox-testing)).
 
 ```typescript
@@ -148,12 +140,12 @@ const fundResult = await vopay.eftFund({
   lastName: 'Doe',
   accountNumber: '12345678',
   financialInstitutionNumber: '001', // 3-digit bank number
-  branchTransitNumber: '12345',       // 5-digit transit
+  branchTransitNumber: '12345', // 5-digit transit
 });
 
 console.log(fundResult.providerTransactionId); // VoPay TransactionID
-console.log(fundResult.flagged);                // true if VoPay flagged the transaction
-console.log(fundResult.flaggedReason);          // string reason, or null
+console.log(fundResult.flagged); // true if VoPay flagged the transaction
+console.log(fundResult.flaggedReason); // string reason, or null
 ```
 
 ### Send funds to a tokenized account
@@ -209,13 +201,13 @@ console.log(embed.iframeKey);
 
 ### Environment variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `VOPAY_API_KEY` | yes | — | VoPay API key. When absent, `createVoPayConfigFromEnv()` returns `null` (integration disabled). |
-| `VOPAY_ACCOUNT_ID` | yes* | — | VoPay account ID. Required when `VOPAY_API_KEY` is set. |
-| `VOPAY_SHARED_SECRET` | yes* | — | Shared secret used in the request signature. Required when `VOPAY_API_KEY` is set. |
-| `VOPAY_BASE_URL` | no | `https://earthnode-dev.vopay.com` | Override the base URL (e.g. for production). Trailing slash is stripped. Must use `https://`; `http://` is accepted only for loopback hosts (local test servers). |
-| `VOPAY_SANDBOX_INTEGRATION` | no | — | Set to `1` to enable live sandbox integration tests (see [Sandbox testing](#sandbox-testing)). |
+| Variable                    | Required | Default                           | Description                                                                                                                                                       |
+| --------------------------- | -------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VOPAY_API_KEY`             | yes      | —                                 | VoPay API key. When absent, `createVoPayConfigFromEnv()` returns `null` (integration disabled).                                                                   |
+| `VOPAY_ACCOUNT_ID`          | yes*     | —                                 | VoPay account ID. Required when `VOPAY_API_KEY` is set.                                                                                                           |
+| `VOPAY_SHARED_SECRET`       | yes*     | —                                 | Shared secret used in the request signature. Required when `VOPAY_API_KEY` is set.                                                                                |
+| `VOPAY_BASE_URL`            | no       | `https://earthnode-dev.vopay.com` | Override the base URL (e.g. for production). Trailing slash is stripped. Must use `https://`; `http://` is accepted only for loopback hosts (local test servers). |
+| `VOPAY_SANDBOX_INTEGRATION` | no       | —                                 | Set to `1` to enable live sandbox integration tests (see [Sandbox testing](#sandbox-testing)).                                                                    |
 
 \* Required only when `VOPAY_API_KEY` is present. If any of these is missing while
 `VOPAY_API_KEY` is set, `createVoPayConfigFromEnv()` throws a fail-fast error.
@@ -261,295 +253,29 @@ The client computes this automatically on every call using `todayUtc()` (UTC via
    egress IP (Lambda/NAT EIP, EC2, or your office IP) in the VoPay portal **before**
    the first call. This silently blocks you with a `401`/`403` and no useful error body.
 
-See [`docs/SKILL.md`](docs/SKILL.md) and [`docs/REFERENCE.md`](docs/REFERENCE.md) for
-the full integration guide, validation tables, and gotchas.
+See [`docs/SKILL.md`](https://github.com/victorsalmon/vopay-client/blob/main/docs/SKILL.md)
+and
+[`docs/REFERENCE.md`](https://github.com/victorsalmon/vopay-client/blob/main/docs/REFERENCE.md)
+for the full integration guide, validation tables, and gotchas.
 
 ---
 
 ## API reference
 
-`src/index.ts` exports config helpers (`VoPayConfig`,
-`createVoPayConfigFromEnv`, `VO_PAY_DEFAULT_BASE_URL`), the client factory
-`createVoPayClient` with its public types (`VoPayClient` and the input/result
-types for money requests, funds, withdrawals, client accounts, and embed
-URLs), webhook helpers (`verifyVoPayWebhook`, `getVoPayWebhookValue`), and
-the `sha1` re-export (`voPaySha1`). Methods on a `VoPayClient` instance
-(`post`, `requestMoney`, `eftFund`, `eftWithdraw`, `createClientAccount`,
-`generateEmbedUrl`) and the `@clocklobster/vopay-client/sandbox` subpath
-helpers are part of the public surface as well. Full per-export detail
-lives in [`docs/API.md`](docs/API.md); endpoint conventions, auth, and
-validation tables live in [`docs/REFERENCE.md`](docs/REFERENCE.md).
+`src/index.ts` exports config helpers (`VoPayConfig`, `createVoPayConfigFromEnv`,
+`VO_PAY_DEFAULT_BASE_URL`), the client factory `createVoPayClient` with its public
+types (`VoPayClient` and the input/result types for money requests, funds,
+withdrawals, client accounts, and embed URLs), webhook helpers (`verifyVoPayWebhook`,
+`getVoPayWebhookValue`), and the `sha1` re-export (`voPaySha1`). Methods on a
+`VoPayClient` instance (`post`, `requestMoney`, `eftFund`, `eftWithdraw`,
+`createClientAccount`, `generateEmbedUrl`) and the
+`@clocklobster/vopay-client/sandbox` subpath helpers are part of the public surface as
+well.
 
-### `createVoPayClient(config, fetchImpl?)`
-
-Creates a VoPay client. The optional `fetchImpl` parameter lets you inject a custom
-`fetch` (useful for testing or for runtimes without a global `fetch`).
-
-```typescript
-import { createVoPayClient, type VoPayConfig } from '@clocklobster/vopay-client';
-
-const config: VoPayConfig = {
-  baseUrl: 'https://earthnode-dev.vopay.com',
-  accountId: '...',
-  apiKey: '...',
-  sharedSecret: '...',
-};
-
-const vopay = createVoPayClient(config);
-
-// With a custom fetch (e.g. for testing)
-const vopayWithCustomFetch = createVoPayClient(config, customFetch);
-```
-
-**Returns:** an object with `post`, `requestMoney`, `eftFund`, `eftWithdraw`,
-`createClientAccount`, and `generateEmbedUrl` methods.
-
-#### `post(endpoint, fields, idempotencyKey?)`
-
-The low-level POST method used by all endpoint helpers. Useful for calling endpoints
-not yet wrapped by a typed helper.
-
-```typescript
-const { raw } = await vopay.post('custom/endpoint', {
-  Foo: 'bar',
-  Baz: undefined, // undefined/empty values are omitted from the form body
-}, 'idempotency-key-optional');
-```
-
----
-
-### `createVoPayConfigFromEnv(env?)`
-
-Builds a `VoPayConfig` from environment variables. Returns `null` when
-`VOPAY_API_KEY` is absent (the integration is disabled). Throws if any required
-value is present but incomplete, so a misconfiguration is fail-fast.
-
-```typescript
-import { createVoPayConfigFromEnv } from '@clocklobster/vopay-client';
-
-const config = createVoPayConfigFromEnv();      // reads process.env
-const config2 = createVoPayConfigFromEnv(myEnv); // reads a custom env object
-```
-
----
-
-### EFT fund — `eftFund(input)`
-
-Collect funds from a Canadian bank account (`eft/fund`).
-
-```typescript
-const result = await vopay.eftFund({
-  amountCents: 5000,          // positive integer, in cents
-  currency: 'CAD',            // ISO-4217
-  clientReferenceNumber: 'order-1234',
-  idempotencyKey: 'idem-1',
-  // Payment method — one of:
-  //   clientAccountId, contactId, token, or full bank details (accountNumber +
-  //   financialInstitutionNumber + branchTransitNumber)
-  // Bank details (all three required if any is provided):
-  accountNumber: '12345678',
-  financialInstitutionNumber: '001',
-  branchTransitNumber: '12345',
-  // Name (required when using bank details without a clientAccountId/token):
-  firstName: 'Jane',
-  lastName: 'Doe',
-  // OR companyName: 'Acme Inc.',
-  // Optional:
-  address1: '123 Main St',
-  city: 'Toronto',
-  province: 'ON',
-  country: 'CA',
-  postalCode: 'M5V 3A8',
-  transactionLabel: 'Subscription',
-  notes: 'Monthly billing',
-});
-```
-
-**Returns:** `{ providerTransactionId, flagged, flaggedReason, raw }`
-
-**Validation** (throws before the network call):
-- `amountCents` must be a positive integer
-- `currency`, `clientReferenceNumber`, `idempotencyKey` are required non-empty strings
-- If any bank field (`accountNumber`, `financialInstitutionNumber`, `branchTransitNumber`)
-  is provided, **all three** must be provided
-- A payment method is required (`clientAccountId`, `contactId`, `token`, connector
-  token, or full bank details)
-- When using bank details without a `clientAccountId`/`token`, either
-  `firstName`+`lastName` or `companyName` is required
-
-**Connector tokens** (any one satisfies the payment-method requirement):
-`token`, `flinksAccountId`+`flinksLoginId`, `plaidPublicToken`+`plaidAccessToken`+
-`plaidAccountId`, `plaidProcessorToken`, `mxAuthorizationCode`, `inveriteRequestGuid`
-
----
-
-### EFT withdraw — `eftWithdraw(input)`
-
-Send funds to bank details or a Token (`eft/withdraw`). Same input shape and validation
-as `eftFund`, plus an optional `parentTransactionId` for linked transactions (e.g.
-refunding a fund).
-
-```typescript
-const result = await vopay.eftWithdraw({
-  amountCents: 25000,
-  currency: 'CAD',
-  clientReferenceNumber: 'payout-5678',
-  idempotencyKey: 'idem-payout-1',
-  token: 'token-from-iq11-iframe',
-  // OR full bank details as in eftFund
-});
-```
-
-**Returns:** `{ providerTransactionId, flagged, flaggedReason, raw }`
-
----
-
-### Interac money request — `requestMoney(input)`
-
-Send an Interac email money request (`interac/money-request`). The recipient receives
-an email and completes the transfer via their bank.
-
-```typescript
-const result = await vopay.requestMoney({
-  amountCents: 1299,           // positive integer, in cents
-  recipientEmail: 'customer@example.com',
-  recipientName: 'Customer Name',
-  message: 'Invoice #INV-001',
-  clientReferenceNumber: 'inv-001',
-  idempotencyKey: 'idem-inv-001-1',
-});
-```
-
-**Returns:** `{ providerTransactionId, raw }`
-
-The `providerTransactionId` is read from the first present key among
-`TransactionID`, `TransactionId`, `RequestID`, `RequestId`, `ID`, `id`.
-
----
-
-### Client account — `createClientAccount(input)`
-
-Create a client account in VoPay's segregated virtual ledger
-(`account/client-accounts/individual`). Used by platforms and subscription services
-to hold funds on behalf of end users.
-
-```typescript
-const result = await vopay.createClientAccount({
-  clientAccountId: 'client-acct-1',  // your internal ID
-  firstName: 'Jane',
-  lastName: 'Doe',
-  email: 'jane@example.com',
-  currency: 'CAD',
-  phoneNumber: '4165551234',         // 6-11 digits
-  dateOfBirth: '1990-01-15',         // YYYY-MM-DD
-  sinLastDigits: 1234,               // 4-digit integer (0-9999)
-  // Optional:
-  address1: '123 Main St',
-  city: 'Toronto',
-  province: 'ON',
-  country: 'CA',
-  postalCode: 'M5V 3A8',
-  nationality: 'CA',
-  token: 'token-from-iq11-iframe',
-  label: 'Primary account',
-});
-```
-
-**Returns:** `{ clientAccountId, status, verificationLink, raw }`
-
-> Note: VoPay's response uses the key `VerifcationLink` (sic — missing the 'i'). The
-> client checks both `VerifcationLink` and `VerificationLink` so you get the value
-> either way.
-
----
-
-### Embed URL — `generateEmbedUrl(input?)`
-
-Generate an iFrame embed URL for bank-connect (`iq11/generate-embed-url`). Render the
-returned `url` in an `<iframe>`; when the user connects their bank, VoPay redirects
-back to your `redirectUrl` with a Token you can use for `eftFund`/`eftWithdraw`.
-
-```typescript
-const result = await vopay.generateEmbedUrl({
-  clientAccountId: 'client-acct-1',
-  redirectUrl: 'https://yourapp.com/bank-connect/callback',
-  redirectMethod: 'innerredirect',  // 'innerredirect' | 'outerredirect' | 'javascriptmessage'
-  companyName: 'Your Company',
-  language: 'en',                    // 'en' | 'fr'
-  accountSelectionMethod: 'any',     // 'any' | 'online' | 'manual'
-  paymentSelectionMethod: 'bank',    // 'any'|'bank'|'email'|'credit'|'debitcard'|'googlepay'|'applepay'|'paypal'|'venmo'
-  clientReferenceNumber: 'session-1',
-  country: 'CA',                     // 'CA' | 'US'
-  accountHolderType: 'individual',   // 'individual' | 'business'
-  clientControlled: true,
-  requireDebitAuthorityAgreement: true,
-  cardTypeValidation: true,
-  trigger3DS: false,
-  darkMode: false,
-  verify: 'optional-verify-token',
-  acceptedCardBrands: 'visa,mastercard',
-});
-```
-
-All parameters are optional; call `generateEmbedUrl()` with no arguments for a
-default-configured embed URL.
-
-**Returns:** `{ url, iframeKey, raw }`
-
----
-
-### Webhook verification — `verifyVoPayWebhook(...)`
-
-Verify a VoPay webhook signature using timing-safe comparison. VoPay signs webhook
-payloads with `ValidationKey = SHA1(shared secret + provider record id)`.
-
-```typescript
-import { verifyVoPayWebhook, getVoPayWebhookValue } from '@clocklobster/vopay-client';
-
-// recordId: the provider's record/transaction id from the webhook payload
-// validationKey: the ValidationKey field from the webhook payload
-// sharedSecret: your VOPAY_SHARED_SECRET
-const valid = verifyVoPayWebhook(recordId, validationKey, sharedSecret);
-
-if (!valid) {
-  // reject the webhook — do not trust unsigned payloads for money state
-  return { statusCode: 401 };
-}
-
-// Extract a value from the payload using a list of possible keys
-const txId = getVoPayWebhookValue(payload, ['TransactionID', 'TransactionId', 'ID']);
-```
-
-`getVoPayWebhookValue(payload, keys)` returns the first non-empty string value from
-the payload using a list of possible keys (numbers are coerced to strings; empty/
-whitespace values are skipped).
-
-`voPaySha1(value)` re-exports the `sha1` helper from `src/util.ts` (40-char hex
-digest used for request signatures).
-
----
-
-### Sandbox helpers
-
-Import from the `@clocklobster/vopay-client/sandbox` subpath:
-
-```typescript
-import {
-  isSandboxEnabled,
-  requireSandboxCredentials,
-  uniqueClientReference,
-  isAuthOrSignatureRejection,
-  isProviderErrorStatus,
-} from '@clocklobster/vopay-client/sandbox';
-```
-
-| Function | Description |
-|---|---|
-| `isSandboxEnabled(env?)` | Returns `true` when `VOPAY_SANDBOX_INTEGRATION` is a non-empty, non-off value (`1`, `true`, …). Explicit off values (`0`, `false`, `off`, `no`) keep the gate closed. |
-| `requireSandboxCredentials(env?)` | Loads sandbox creds from env; throws if `VOPAY_SANDBOX_INTEGRATION` is unset/off or any cred is missing. |
-| `uniqueClientReference(prefix?)` | Generates a unique `prefix-<timestamp>-<random>` string (CSPRNG-backed suffix) for sandbox client reference numbers / idempotency keys. |
-| `isAuthOrSignatureRejection(response, bodyText)` | Heuristic for failures indicating incomplete sandbox onboarding (wrong creds, bad signature, IP not allowlisted). Returns `false` for business validation errors. |
-| `isProviderErrorStatus(raw)` | Detects a provider-declared `error`/`failed`/`failure`/`declined` status in a parsed JSON response. |
+The [API reference](https://github.com/victorsalmon/vopay-client/blob/main/docs/API.md)
+owns per-export detail — inputs, return shapes, validation, and worked examples. The
+[VoPay reference](https://github.com/victorsalmon/vopay-client/blob/main/docs/REFERENCE.md)
+owns endpoint conventions, auth, and the complete validation table.
 
 ---
 
@@ -667,14 +393,14 @@ Without `VOPAY_SANDBOX_INTEGRATION=1`, the sandbox contract tests are **skipped*
 
 The suite uses [Vitest](https://vitest.dev/) and covers three layers:
 
-| Test file | Layer | Tests |
-|---|---|---|
-| `test/vopay-client.test.ts` | Unit — config, transport security, webhook verification, sha1 | 30 |
-| `test/vopay-endpoints.test.ts` | Unit — endpoint field building, validation, error handling | 64 |
-| `test/vopay-sandbox.test.ts` | Unit — sandbox helpers (9) + sandbox-gated live checks (7 skipped without creds) | 16 (7 skipped without creds) |
-| `test/vopay-sandbox-contract.test.ts` | Integration — live sandbox API contract | 7 (all skipped without creds) |
-| `test/util.property.test.ts` | Property — sha1, config, webhook, sandbox helpers (fast-check) | 12 |
-| `test/client.property.test.ts` | Property — amount validation, generic post transport, EFT/fund-withdraw validation (fast-check) | 7 |
+| Test file                             | Layer                                                                                           | Tests                         |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------- |
+| `test/vopay-client.test.ts`           | Unit — config, transport security, webhook verification, sha1                                   | 30                            |
+| `test/vopay-endpoints.test.ts`        | Unit — endpoint field building, validation, error handling                                      | 64                            |
+| `test/vopay-sandbox.test.ts`          | Unit — sandbox helpers (9) + sandbox-gated live checks (7 skipped without creds)                | 16 (7 skipped without creds)  |
+| `test/vopay-sandbox-contract.test.ts` | Integration — live sandbox API contract                                                         | 7 (all skipped without creds) |
+| `test/util.property.test.ts`          | Property — sha1, config, webhook, sandbox helpers (fast-check)                                  | 12                            |
+| `test/client.property.test.ts`        | Property — amount validation, generic post transport, EFT/fund-withdraw validation (fast-check) | 7                             |
 
 **Total: 136 tests (122 passing, 14 skipped without sandbox credentials).**
 
@@ -768,18 +494,19 @@ vopay-client/
 
 ## VoPay endpoint reference
 
-| Flow | Endpoint | Method | Use |
-|---|---|---|---|
-| Collect (EFT CA) | `eft/fund` | `eftFund()` | Pull funds from a Canadian bank account |
-| Send (EFT CA) | `eft/withdraw` | `eftWithdraw()` | Pay out to bank details or a Token |
-| Interac money request | `interac/money-request` | `requestMoney()` | Email money request via Interac |
-| Segregated ledger | `account/client-accounts/individual` | `createClientAccount()` | Virtual ledger for platforms/subscriptions |
-| Bank-connect iFrame | `iq11/generate-embed-url` | `generateEmbedUrl()` | User connects bank → returns a Token |
-| Webhook verification | (client-side) | `verifyVoPayWebhook()` | Validate `ValidationKey` signature |
+| Flow                  | Endpoint                             | Method                  | Use                                        |
+| --------------------- | ------------------------------------ | ----------------------- | ------------------------------------------ |
+| Collect (EFT CA)      | `eft/fund`                           | `eftFund()`             | Pull funds from a Canadian bank account    |
+| Send (EFT CA)         | `eft/withdraw`                       | `eftWithdraw()`         | Pay out to bank details or a Token         |
+| Interac money request | `interac/money-request`              | `requestMoney()`        | Email money request via Interac            |
+| Segregated ledger     | `account/client-accounts/individual` | `createClientAccount()` | Virtual ledger for platforms/subscriptions |
+| Bank-connect iFrame   | `iq11/generate-embed-url`            | `generateEmbedUrl()`    | User connects bank → returns a Token       |
+| Webhook verification  | (client-side)                        | `verifyVoPayWebhook()`  | Validate `ValidationKey` signature         |
 
 All endpoints are prefixed with `/api/v2/` on the configured base URL.
 
 **Not yet implemented** (use the low-level `post()` method or open a PR):
+
 - Card / Interac online / pre-authorized debit variants
 - Webhook event retrieval (the client verifies signatures but does not fetch events)
 - Account verification status checks
@@ -790,27 +517,10 @@ All endpoints are prefixed with `/api/v2/` on the configured base URL.
 ## Validation rules
 
 VoPay enforces input validation on every API. The client mirrors the most important
-rules locally (positive integer amounts, required fields, bank-field completeness) to
-fail fast before the network call. The full VoPay validation table:
-
-| Field | Rule |
-|---|---|
-| Province | valid 2-letter Canadian provincial/territorial code |
-| State | valid 2-letter US state alpha code |
-| Country | ISO 3166-1 alpha-2 (2 letters) |
-| Financial Institution Number | 3-digit integer (the bank number) |
-| Branch Transit Number | 5-digit integer |
-| Bank Account Number | integer, max 160 digits |
-| Currency | ISO-4217 (3 letters) |
-| Postal Code | `A9A 9A9` format |
-| Email | RFC `local-part@domain`, max 145 chars |
-| Phone Number | integer, 6–11 digits |
-| Amount | positive, non-zero numeric |
-| Date | `YYYY-MM-DD` |
-| Language | `EN` or `FR` (case-insensitive) |
-
-See [`docs/REFERENCE.md`](docs/REFERENCE.md) §5 for the complete allowed-character table
-by field.
+rules locally — positive integer amounts, required fields, and bank-field
+completeness — to fail fast before the network call. The full field-by-field table
+and the allowed-character matrix live in
+[`docs/REFERENCE.md`](https://github.com/victorsalmon/vopay-client/blob/main/docs/REFERENCE.md) §5.
 
 ---
 
