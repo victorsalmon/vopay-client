@@ -5,7 +5,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-green.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.x-blue.svg)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/tests-118%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-122%20passing-brightgreen.svg)](#testing)
 
 A product-neutral TypeScript client for the [VoPay](https://vopay.com) payment API —
 Canadian EFT (bank-to-bank), Interac money requests, client accounts, iFrame bank-connect,
@@ -669,14 +669,14 @@ The suite uses [Vitest](https://vitest.dev/) and covers three layers:
 
 | Test file | Layer | Tests |
 |---|---|---|
-| `test/vopay-client.test.ts` | Unit — config, webhook verification, sha1 | 26 |
+| `test/vopay-client.test.ts` | Unit — config, transport security, webhook verification, sha1 | 30 |
 | `test/vopay-endpoints.test.ts` | Unit — endpoint field building, validation, error handling | 64 |
 | `test/vopay-sandbox.test.ts` | Unit — sandbox helpers (9) + sandbox-gated live checks (7 skipped without creds) | 16 (7 skipped without creds) |
 | `test/vopay-sandbox-contract.test.ts` | Integration — live sandbox API contract | 7 (all skipped without creds) |
 | `test/util.property.test.ts` | Property — sha1, config, webhook, sandbox helpers (fast-check) | 12 |
 | `test/client.property.test.ts` | Property — amount validation, generic post transport, EFT/fund-withdraw validation (fast-check) | 7 |
 
-**Total: 132 tests (118 passing, 14 skipped without sandbox credentials).**
+**Total: 136 tests (122 passing, 14 skipped without sandbox credentials).**
 
 Without `VOPAY_SANDBOX_INTEGRATION=1` (plus `VOPAY_ACCOUNT_ID`,
 `VOPAY_API_KEY`, and `VOPAY_SHARED_SECRET`), the 7 sandbox tests in
@@ -742,7 +742,7 @@ vopay-client/
 │   ├── util.ts       # sha1, todayUtc, firstString, isProviderErrorStatus
 │   └── index.ts      # public exports
 ├── test/
-│   ├── vopay-client.test.ts          # config + webhook + util unit tests (26)
+│   ├── vopay-client.test.ts          # config + transport security + webhook + util unit tests (30)
 │   ├── vopay-endpoints.test.ts       # endpoint field building + validation tests (64)
 │   ├── vopay-sandbox.test.ts         # sandbox helper unit tests (16)
 │   ├── vopay-sandbox-contract.test.ts # live sandbox API contract tests, gated (7 skipped)

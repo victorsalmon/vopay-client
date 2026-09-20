@@ -34,7 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Packaging: replaced the `postinstall` build hook with `prepublishOnly`, so a
   plain install no longer requires the TypeScript toolchain while publishing
   still emits `dist/` via `tsc -p tsconfig.build.json`.
-- No runtime source, test, or credential changes in this release.
+- The packaging change is build-only: it introduces no runtime source, test, or
+  credential changes of its own; the runtime and test changes in this release
+  are listed under `Security` and `Fixed`.
 - Added lint/format gates wired into CI: ESLint (flat config, `@eslint/js` +
   typescript-eslint recommended, `pnpm lint`) and Prettier (`pnpm
   format:check`). The `typescript` devDependency now aliases
